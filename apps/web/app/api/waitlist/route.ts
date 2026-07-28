@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     // Send email notification via Resend
     await resend.emails.send({
       from: "Nazara AI Waitlist <onboarding@resend.dev>",
-      to: ["albertkent@nazara.ai"],
+      to: ["chineduobi423@gmail.com"],
       subject: `New Waitlist Signup: ${fullName}`,
       html: `
         <h2>New Early Access Signup</h2>
