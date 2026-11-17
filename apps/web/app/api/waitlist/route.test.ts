@@ -74,6 +74,19 @@ describe("POST /api/waitlist", () => {
     expect(emailArgs.html).toContain("Not provided");
   });
 
+  it("returns a 500 when Resend reports an error without throwing", async () => {
+    sendMock.mockResolvedValueOnce({ data: null, error: { message: "invalid api key" } });
+    const res = await POST(makeRequest({ fullName: "Ada Lovelace", email: "ada@example.com" }));
+    expect(res.status).toBe(500);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("returns a 500 when the Sheets webhook fails", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(new Response(null, { status: 502 }));
+    const res = await POST(makeRequest({ fullName: "Ada Lovelace", email: "ada@example.com" }));
+    expect(res.status).toBe(500);
+  });
+
   it("returns a 500 when the Resend call fails", async () => {
     sendMock.mockRejectedValueOnce(new Error("Resend is down"));
     const res = await POST(makeRequest({ fullName: "Ada Lovelace", email: "ada@example.com" }));

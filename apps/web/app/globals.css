@@ -1,30 +1,86 @@
 @import "tailwindcss";
 
-:root {
-  --color-brand: #16a34a;
-  --color-brand-dark: #15803d;
-  --color-brand-light: #dcfce7;
-  --color-ink: #111827;
-  --color-muted: #6b7280;
-  --color-border: #e5e7eb;
+@theme {
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-brand: #166533;
+  --color-brand-dark: #0f4a25;
+  --color-brand-bright: #22c55e;
+  --color-brand-tint: #e8f3ec;
+  --color-paper: #f7f8f5;
+  --color-ink: #0c1a13;
+  --color-ink-soft: #3d4a43;
+  --color-muted: #6b7570;
+  --color-line: #dfe4df;
+  --color-deep: #07120c;
+  --color-deep-2: #0e1f16;
 }
 
-* {
-  box-sizing: border-box;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    line-height: 1.6;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a {
+    color: inherit;
+  }
 }
 
-html {
-  scroll-behavior: smooth;
+/* Engineering-drawing grid used behind the hero and dark bands */
+.blueprint {
+  background-image:
+    linear-gradient(to right, rgb(22 101 51 / 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(22 101 51 / 0.07) 1px, transparent 1px);
+  background-size: 32px 32px;
 }
 
-body {
-  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background-color: #ffffff;
-  color: var(--color-ink);
-  line-height: 1.6;
-  margin: 0;
+.blueprint-dark {
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.05) 1px, transparent 1px);
+  background-size: 32px 32px;
 }
 
-a {
-  color: inherit;
+/* Staggered reveal for the hero review panel */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.reveal {
+  opacity: 0;
+  animation: rise 0.5s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+  .reveal {
+    opacity: 1;
+    animation: none;
+  }
+}
+
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
 }
