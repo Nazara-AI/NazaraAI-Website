@@ -598,109 +598,185 @@ const sheet: Builder = (THREE, scene, camera) => {
 /* ---------------------------------------------------------------- */
 /* Pillar 2: tubular KT-joint with weld-toe hot spots                */
 /* ---------------------------------------------------------------- */
-const joint: Builder = (THREE, scene, camera, kit) => {
-  const wire = (color: number, opacity: number) =>
-    new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity });
-  const chordMat = wire(BRAND, 0.35);
-  const canMat = wire(BRAND, 0.6);
-  const braceMat = wire(BRAND, 0.5);
+const joint: Builder = (THREE, scene, camera) => {
   const group = new THREE.Group();
+  const R = 0.68; // joint can outer radius
+  const STEEL = new THREE.Color(0xc3ccc7);
 
-  // Chord with a thicker joint can in the middle
-  [
-    { x: -2.0, len: 2.0, r: 0.6, mat: chordMat },
-    { x: 0, len: 2.0, r: 0.68, mat: canMat },
-    { x: 2.0, len: 2.0, r: 0.6, mat: chordMat },
-  ].forEach(({ x, len, r, mat }) => {
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 18, 4, true), mat);
-    m.rotation.z = Math.PI / 2;
-    m.position.x = x;
-    group.add(m);
-  });
+  // Lighting (scoped to this scene)
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x7d8a83, 1.6));
+  const key = new THREE.DirectionalLight(0xffffff, 2.2);
+  key.position.set(3, 5, 6);
+  scene.add(key);
+  const rim = new THREE.DirectionalLight(0xdff5e6, 1.1);
+  rim.position.set(-5, 2, -4);
+  scene.add(rim);
 
-  // Can end circumferential welds
-  const cw = new Segs();
-  for (const x of [-1, 1]) {
-    const pts = circle([0, 0, 0], 0.68, 40).map(([a, b]) => [x, a, b] as V3);
-    cw.poly(pts, true);
+  const steel = (vertexColors = false) =>
+    new THREE.MeshStandardMaterial({
+      color: vertexColors ? 0xffffff : STEEL,
+      vertexColors,
+      metalness: 0.25,
+      roughness: 0.45,
+    });
+  const bore = new THREE.MeshStandardMaterial({ color: 0x4b5a52, roughness: 0.9, side: THREE.BackSide });
+  const weldMat = new THREE.MeshStandardMaterial({ color: 0xe7ece9, metalness: 0.4, roughness: 0.3 });
+
+  /** Open tube with visible wall thickness: outer skin, dark bore and annular end caps. */
+  const tube = (r: number, len: number, rs: number, hs: number, outer: ThreeNS.Material, caps: [boolean, boolean]) => {
+    const g = new THREE.Group();
+    const skin = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, rs, hs, true), outer);
+    g.add(skin);
+    g.add(new THREE.Mesh(new THREE.CylinderGeometry(r * 0.88, r * 0.88, len, rs, 1, true), bore));
+    caps.forEach((on, i) => {
+      if (!on) return;
+      const ring = new THREE.Mesh(new THREE.RingGeometry(r * 0.88, r, rs), steel());
+      ring.rotation.x = i ? -Math.PI / 2 : Math.PI / 2;
+      ring.position.y = i ? len / 2 : -len / 2;
+      g.add(ring);
+    });
+    return { g, skin };
+  };
+
+  // Chord stubs either side of the thicker joint can
+  for (const sx of [-1, 1]) {
+    const { g } = tube(0.6, 1.5, 64, 1, steel(), [sx < 0, sx > 0]);
+    g.rotation.z = -Math.PI / 2;
+    g.position.x = sx * 2.35;
+    group.add(g);
+    // Can-to-chord shoulder + circumferential weld
+    const shoulder = new THREE.Mesh(new THREE.RingGeometry(0.6, R, 64), steel());
+    shoulder.rotation.y = (sx * Math.PI) / 2;
+    shoulder.position.x = sx * 1.6;
+    group.add(shoulder);
+    const cw = new THREE.Mesh(new THREE.TorusGeometry(0.615, 0.022, 8, 96), weldMat);
+    cw.rotation.y = Math.PI / 2;
+    cw.position.x = sx * 1.6;
+    group.add(cw);
   }
-  group.add(cw.lines(THREE, { color: BRIGHT, opacity: 0.8 }).obj);
+  const can = new THREE.Mesh(new THREE.CylinderGeometry(R, R, 3.2, 128, 96, true), steel(true));
+  can.rotation.z = -Math.PI / 2;
+  group.add(can);
 
-  // Braces: K + vertical (KT joint)
+  // Braces: two inclined + one vertical (KT). xc = footprint centre on the can crown.
   const braces = [
-    { theta: 0.8, x: -0.78, r: 0.3 },
-    { theta: 0, x: 0, r: 0.26 },
-    { theta: -0.8, x: 0.78, r: 0.3 },
+    { theta: 0.8, xc: -0.98, r: 0.3 },
+    { theta: 0, xc: 0, r: 0.26 },
+    { theta: -0.8, xc: 0.98, r: 0.3 },
   ];
-  const hot: { pos: Float32Array; col: Float32Array; geo: ThreeNS.BufferGeometry; n: number }[] = [];
-  braces.forEach(({ theta, x, r }, bi) => {
-    const dir = new THREE.Vector3(-Math.sin(theta), Math.cos(theta), 0);
-    const base = new THREE.Vector3(x, 0.62, 0);
-    const len = 2.5;
-    const b = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 14, 5, true), braceMat);
-    b.rotation.z = theta;
-    b.position.copy(base).addScaledVector(dir, len / 2);
-    group.add(b);
+  const skins: ThreeNS.Mesh[] = [can];
+  const curves: ThreeNS.Vector3[][] = [];
+  const NC = 72;
 
-    // Weld bead at the brace toe
-    const weld = new THREE.Mesh(
-      new THREE.TorusGeometry(r + 0.03, 0.022, 6, 40),
-      new THREE.MeshBasicMaterial({ color: BRIGHT })
-    );
-    const at = base.clone().addScaledVector(dir, 0.14);
-    weld.position.copy(at);
-    weld.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
-    group.add(weld);
-
-    // Hot-spot stress samples around the weld toe
-    const n = 36;
+  braces.forEach(({ theta, xc, r }) => {
+    const d = new THREE.Vector3(-Math.sin(theta), Math.cos(theta), 0);
+    const o = new THREE.Vector3(xc + Math.tan(theta) * R, 0, 0); // brace axis meets chord axis
     const u = new THREE.Vector3(0, 0, 1);
-    const v = new THREE.Vector3().crossVectors(dir, u);
-    const pos = new Float32Array(n * 3);
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2;
-      const p = at
-        .clone()
-        .addScaledVector(u, Math.cos(a) * (r + 0.08))
-        .addScaledVector(v, Math.sin(a) * (r + 0.08));
-      pos.set([p.x, p.y, p.z], i * 3);
+    const w = new THREE.Vector3().crossVectors(d, u);
+
+    // Exact brace/chord intersection (saddle curve): the weld toe line
+    const curve: ThreeNS.Vector3[] = [];
+    for (let i = 0; i < NC; i++) {
+      const a = (i / NC) * Math.PI * 2;
+      const q = o.clone().addScaledVector(u, Math.cos(a) * r).addScaledVector(w, Math.sin(a) * r);
+      const s = (Math.sqrt(R * R - q.z * q.z) - q.y) / d.y;
+      curve.push(q.addScaledVector(d, s));
     }
-    const col = new Float32Array(n * 3);
-    const pt = points(THREE, kit, pos, { size: 0.13, colors: col });
-    group.add(pt.obj);
-    hot.push({ pos, col, geo: pt.geo, n });
-    void bi;
+    curves.push(curve);
+
+    const len = 2.4;
+    const s0 = 0.35;
+    const { g, skin } = tube(r, len, 64, 48, steel(true), [false, true]);
+    g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d);
+    g.position.copy(o).addScaledVector(d, s0 + len / 2);
+    group.add(g);
+    skins.push(skin);
+
+    // Weld bead following the saddle curve, nudged out of both surfaces
+    const bead = curve.map((p) => {
+      const n = new THREE.Vector3(0, p.y, p.z).normalize();
+      const along = p.clone().sub(o);
+      const radial = along.sub(d.clone().multiplyScalar(along.dot(d))).normalize();
+      return p.clone().addScaledVector(n, 0.012).addScaledVector(radial, 0.012);
+    });
+    const path = new THREE.CatmullRomCurve3(bead, true);
+    group.add(new THREE.Mesh(new THREE.TubeGeometry(path, 160, 0.035, 10, true), weldMat));
   });
 
-  group.position.y = -0.85;
-  scene.add(group);
-  camera.position.set(0, 0.8, 8.6);
-  camera.lookAt(0, 0, 0);
+  // Precompute each skin vertex's proximity to the weld toes; the geometry is static.
+  group.updateMatrixWorld(true);
+  const toGroup = group.matrixWorld.clone().invert();
+  type Tap = { v: number; b: number; k: number; wgt: number };
+  const fields = skins.map((mesh, mi) => {
+    const pos = mesh.geometry.attributes.position as ThreeNS.BufferAttribute;
+    const col = new Float32Array(pos.count * 3);
+    mesh.geometry.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    const taps: Tap[] = [];
+    const p = new THREE.Vector3();
+    const m = mesh.matrixWorld.clone().premultiply(toGroup);
+    const fall = mi === 0 ? 0.2 : 0.16;
+    for (let v = 0; v < pos.count; v++) {
+      p.fromBufferAttribute(pos, v).applyMatrix4(m);
+      curves.forEach((c, b) => {
+        if (mi > 0 && mi - 1 !== b) return; // a brace only feels its own toe
+        let best = Infinity;
+        let k = 0;
+        for (let i = 0; i < c.length; i++) {
+          const dd = p.distanceToSquared(c[i]);
+          if (dd < best) {
+            best = dd;
+            k = i;
+          }
+        }
+        const wgt = Math.exp(-best / (fall * fall));
+        if (wgt > 0.015) taps.push({ v, b, k, wgt });
+      });
+    }
+    return { geo: mesh.geometry, col, count: pos.count, taps, s: new Float32Array(pos.count) };
+  });
 
-  const g = new THREE.Color(BRIGHT);
-  const a = new THREE.Color(AMBER);
-  const rd = new THREE.Color(RED);
+  group.position.y = -0.7;
+  scene.add(group);
+  camera.position.set(0.4, 1.4, 8.4);
+  camera.lookAt(0, 0.1, 0);
+
+  const ramp = [new THREE.Color(0x1f9d55), new THREE.Color(0x84cc16), new THREE.Color(AMBER), new THREE.Color(RED)];
   const tmp = new THREE.Color();
+  const BANDS = 9;
   let peak = 0;
 
   return {
     update(t) {
-      group.rotation.y = Math.sin(t * 0.35) * 0.35;
-      group.rotation.x = 0.22 + Math.sin(t * 0.4) * 0.07;
+      group.rotation.y = -0.35 + Math.sin(t * 0.3) * 0.32;
+      group.rotation.x = 0.18 + Math.sin(t * 0.37) * 0.05;
+      // K braces carry alternating axial load; the vertical brace pulses between them
+      const load = braces.map((_, b) => 0.6 + 0.4 * Math.sin(t * 0.8 + b * 2.1));
       peak = 0;
-      hot.forEach((h, bi) => {
-        for (let i = 0; i < h.n; i++) {
-          const ang = (i / h.n) * Math.PI * 2;
-          // Saddle/crown pattern, slowly cycling as if under varying load
-          let s = 0.5 + 0.5 * Math.cos(2 * ang + bi) * (0.6 + 0.4 * Math.sin(t * 0.9 + bi * 1.7));
-          s = Math.max(0, Math.min(1, s));
-          peak = Math.max(peak, s);
-          if (s < 0.5) tmp.copy(g).lerp(a, s * 2);
-          else tmp.copy(a).lerp(rd, (s - 0.5) * 2);
-          h.col.set([tmp.r, tmp.g, tmp.b], i * 3);
+      for (const f of fields) {
+        f.s.fill(0);
+        for (const { v, b, k, wgt } of f.taps) {
+          const a = (k / NC) * Math.PI * 2;
+          // Saddle points (a = ±90°) peak; crown toe/heel lower
+          const pattern = 0.55 + 0.45 * Math.sin(a) * Math.sin(a);
+          f.s[v] = Math.max(f.s[v], wgt * pattern * load[b]);
         }
-        h.geo.attributes.color.needsUpdate = true;
-      });
+        for (let v = 0; v < f.count; v++) {
+          const s = Math.min(1, f.s[v]);
+          peak = Math.max(peak, s);
+          if (s < 0.06) tmp.copy(STEEL);
+          else {
+            const q = Math.ceil(s * BANDS) / BANDS; // contour bands, FEA-style
+            const x = q * (ramp.length - 1);
+            const i = Math.min(ramp.length - 2, Math.floor(x));
+            tmp.copy(ramp[i]).lerp(ramp[i + 1], x - i);
+            tmp.lerp(STEEL, Math.max(0, 0.35 - s) * 1.6);
+          }
+          f.col[v * 3] = tmp.r;
+          f.col[v * 3 + 1] = tmp.g;
+          f.col[v * 3 + 2] = tmp.b;
+        }
+        f.geo.attributes.color.needsUpdate = true;
+      }
     },
     hud: () => `KT joint · weld-toe hot spots · SCF ${(1.8 + peak * 1.6).toFixed(2)}`,
   };
@@ -710,91 +786,90 @@ const joint: Builder = (THREE, scene, camera, kit) => {
 /* Pillar 3: agents, documents, checks and outputs                   */
 /* ---------------------------------------------------------------- */
 const network: Builder = (THREE, scene, camera, kit) => {
-  const N = 12;
-  const pts: ThreeNS.Vector3[] = [];
-  for (let i = 0; i < N; i++) {
-    const y = 1 - (i / (N - 1)) * 2;
-    const r = Math.sqrt(1 - y * y);
-    const a = i * 2.399963;
-    pts.push(new THREE.Vector3(Math.cos(a) * r * 1.75, y * 1.2, Math.sin(a) * r * 1.75));
-  }
-  const kind = (i: number) => (["doc", "check", "out"] as const)[i % 3];
-  const hub = new THREE.Vector3();
+  // Left-to-right review flow: documents -> agents -> checks -> findings.
+  // Laid out wide and shallow so it fills a short, wide strip.
+  const DOC = 0x8fa39a;
+  const col = (x: number, n: number, span: number, z = 0): ThreeNS.Vector3[] =>
+    Array.from({ length: n }, (_, i) => new THREE.Vector3(x, n === 1 ? 0 : span / 2 - (i * span) / (n - 1), z));
+
+  const docs = col(-5.4, 4, 2.6, 0.2);
+  const agents = col(-1.9, 3, 2.0, -0.1);
+  const checks = col(1.7, 4, 2.6, 0.15);
+  const outs = col(5.1, 2, 1.3, 0);
+  const flagged = 1; // index into outs that receives amber "finding" pulses
 
   const group = new THREE.Group();
-  const edgeMat = (c: number) => new THREE.LineBasicMaterial({ color: c, transparent: true, opacity: 1 });
-
-  // Node glyphs
-  const glyph = (i: number) => {
-    const k = kind(i);
-    const geo =
-      k === "doc"
-        ? new THREE.BoxGeometry(0.2, 0.26, 0.02)
-        : k === "check"
-          ? new THREE.OctahedronGeometry(0.13)
-          : new THREE.TetrahedronGeometry(0.15);
-    const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat(k === "doc" ? 0x3d4a43 : k === "check" ? BRAND : 0x15803d));
+  const edgeMat = (c: number, o = 1) => new THREE.LineBasicMaterial({ color: c, transparent: true, opacity: o });
+  const outline = (geo: ThreeNS.BufferGeometry, c: number, at: ThreeNS.Vector3) => {
+    const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat(c));
     geo.dispose();
-    e.position.copy(pts[i]);
+    e.position.copy(at);
+    group.add(e);
     return e;
   };
-  const glyphs = pts.map((_, i) => glyph(i));
-  glyphs.forEach((gl) => group.add(gl));
 
-  // Hub with orbit rings
-  const hubGeo = new THREE.IcosahedronGeometry(0.3, 1);
-  const hubMesh = new THREE.LineSegments(new THREE.EdgesGeometry(hubGeo), edgeMat(BRAND));
-  hubGeo.dispose();
-  group.add(hubMesh);
-  const orbits = [0.52, 0.7].map((r, i) => {
+  const docGlyphs = docs.map((p) => outline(new THREE.BoxGeometry(0.34, 0.44, 0.03), DOC, p));
+  const checkGlyphs = checks.map((p) => outline(new THREE.OctahedronGeometry(0.15), BRIGHT, p));
+  const outGlyphs = outs.map((p, i) => outline(new THREE.TetrahedronGeometry(0.2), i === flagged ? AMBER : BRIGHT, p));
+  const agentHubs = agents.map((p) => outline(new THREE.IcosahedronGeometry(0.26, 1), BRIGHT, p));
+  const rings = agents.map((p, i) => {
     const s = new Segs();
-    s.poly(circle([0, 0, 0], r, 48, "xz"), true);
-    const l = s.lines(THREE, { color: BRIGHT, opacity: 0.55 });
-    l.obj.rotation.x = i ? 0.9 : -0.5;
-    l.obj.rotation.z = i ? 0.3 : -0.2;
+    s.poly(circle([0, 0, 0], 0.46, 48, "xz"), true);
+    const l = s.lines(THREE, { color: BRIGHT, opacity: 0.45 });
+    l.obj.position.copy(p);
+    l.obj.rotation.x = 0.5 + i * 0.35;
     group.add(l.obj);
     return l.obj;
   });
 
-  // Edges
-  type Edge = { a: ThreeNS.Vector3; b: ThreeNS.Vector3; color: number };
+  // Edges as horizontal S-curves
+  type Edge = { a: ThreeNS.Vector3; b: ThreeNS.Vector3; color: number; speed: number; offset: number };
   const edges: Edge[] = [];
-  const nearest = (from: number, want: ReturnType<typeof kind>) => {
-    let best = -1;
-    let bd = Infinity;
-    pts.forEach((p, j) => {
-      if (j === from || kind(j) !== want) return;
-      const d = p.distanceTo(pts[from]);
-      if (d < bd) {
-        bd = d;
-        best = j;
-      }
+  const link = (a: ThreeNS.Vector3, b: ThreeNS.Vector3, color = BRIGHT) =>
+    edges.push({ a, b, color, speed: 0.32 + (edges.length % 4) * 0.05, offset: (edges.length * 0.37) % 1 });
+
+  docs.forEach((d, i) => {
+    const j = Math.round((i / (docs.length - 1)) * (agents.length - 1));
+    link(d, agents[j]);
+    if (i % 2 === 1) link(d, agents[Math.min(agents.length - 1, j + 1)]);
+  });
+  agents.forEach((a, j) => {
+    checks.forEach((c, k) => {
+      const centre = (j / (agents.length - 1)) * (checks.length - 1);
+      if (Math.abs(k - centre) <= 1) link(a, c);
     });
-    return best;
+  });
+  checks.forEach((c, k) => {
+    const o = k < 2 ? 0 : 1;
+    link(c, outs[o], o === flagged && k === 3 ? AMBER : BRIGHT);
+  });
+
+  const curve = (e: Edge, t: number, out: ThreeNS.Vector3) => {
+    const dx = (e.b.x - e.a.x) * 0.5;
+    const u = 1 - t;
+    const x = u * u * u * e.a.x + 3 * u * u * t * (e.a.x + dx) + 3 * u * t * t * (e.b.x - dx) + t * t * t * e.b.x;
+    const ease = t * t * (3 - 2 * t);
+    return out.set(x, e.a.y + (e.b.y - e.a.y) * ease, e.a.z + (e.b.z - e.a.z) * t);
   };
-  pts.forEach((p, i) => {
-    const k = kind(i);
-    if (k === "doc") {
-      edges.push({ a: p, b: hub, color: BRIGHT });
-      const c = nearest(i, "check");
-      if (c >= 0) edges.push({ a: p, b: pts[c], color: BRIGHT });
-    } else if (k === "check") {
-      edges.push({ a: hub, b: p, color: BRIGHT });
-      const o = nearest(i, "out");
-      if (o >= 0) edges.push({ a: p, b: pts[o], color: AMBER });
-    } else {
-      edges.push({ a: hub, b: p, color: BRIGHT });
+
+  const STEPS = 18;
+  const lineSegs = new Segs();
+  const pa = new THREE.Vector3();
+  const pb = new THREE.Vector3();
+  edges.forEach((e) => {
+    for (let s = 0; s < STEPS; s++) {
+      curve(e, s / STEPS, pa);
+      curve(e, (s + 1) / STEPS, pb);
+      lineSegs.add(pa.toArray() as V3, pb.toArray() as V3);
     }
   });
-  const lineSegs = new Segs();
-  edges.forEach((e) => lineSegs.add(e.a.toArray() as V3, e.b.toArray() as V3));
-  group.add(lineSegs.lines(THREE, { color: PAPER_LINE, opacity: 0.9 }).obj);
+  group.add(lineSegs.lines(THREE, { color: PAPER_LINE, opacity: 0.28 }).obj);
 
   // Pulses with short trails
-  const TRAIL = 4;
+  const TRAIL = 5;
   const pulsePos = new Float32Array(edges.length * TRAIL * 3);
   const pulseCol = new Float32Array(edges.length * TRAIL * 3);
-  const bg = new THREE.Color(0xf7f8f5);
+  const bg = new THREE.Color(0x07120c);
   edges.forEach((e, i) => {
     const c = new THREE.Color(e.color);
     for (let k = 0; k < TRAIL; k++) {
@@ -802,37 +877,50 @@ const network: Builder = (THREE, scene, camera, kit) => {
       pulseCol.set([cc.r, cc.g, cc.b], (i * TRAIL + k) * 3);
     }
   });
-  const pulses = points(THREE, kit, pulsePos, { size: 0.15, colors: pulseCol });
+  const pulses = points(THREE, kit, pulsePos, { size: 0.2, colors: pulseCol });
   group.add(pulses.obj);
 
   scene.add(group);
-  camera.position.set(0, 0.35, 5.3);
+  camera.position.set(0, 0.2, 9.2);
   camera.lookAt(0, 0, 0);
+
+  // Keep the whole flow in frame on narrow strips by backing the camera off.
+  const HALF_W = 6.6;
+  const HALF_H = 2.5;
+  const fit = () => {
+    const vt = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    const dist = Math.max(HALF_H / vt, HALF_W / (vt * camera.aspect));
+    camera.position.z = dist;
+  };
+
   const tmp = new THREE.Vector3();
-  let checks = 0;
+  let checksRun = 0;
 
   return {
     update(t) {
-      group.rotation.y = t * 0.28;
-      group.rotation.x = Math.sin(t * 0.25) * 0.18;
-      hubMesh.rotation.y = -t * 0.8;
-      orbits[0].rotation.y = t * 0.9;
-      orbits[1].rotation.y = -t * 0.6;
-      glyphs.forEach((gl, i) => {
-        gl.rotation.y = t * (0.6 + (i % 3) * 0.2);
+      fit();
+      group.rotation.y = Math.sin(t * 0.3) * 0.16;
+      group.rotation.x = Math.sin(t * 0.22) * 0.06;
+      agentHubs.forEach((h, i) => (h.rotation.y = t * (0.7 + i * 0.15)));
+      rings.forEach((r, i) => (r.rotation.y = (i % 2 ? -1 : 1) * t * 0.8));
+      docGlyphs.forEach((g, i) => (g.rotation.y = Math.sin(t * 0.6 + i) * 0.35));
+      checkGlyphs.forEach((g, i) => (g.rotation.y = t * (0.6 + (i % 3) * 0.2)));
+      outGlyphs.forEach((g, i) => {
+        g.rotation.y = t * 0.5;
+        const s = 1 + (i === flagged ? 0.12 * Math.max(0, Math.sin(t * 3)) : 0);
+        g.scale.setScalar(s);
       });
       edges.forEach((e, i) => {
-        const p = (t * 0.42 + i * 0.37) % 1;
+        const p = (t * e.speed + e.offset) % 1;
         for (let k = 0; k < TRAIL; k++) {
-          const q = Math.max(0, p - k * 0.035);
-          tmp.copy(e.a).lerp(e.b, q);
+          curve(e, Math.max(0, p - k * 0.03), tmp);
           pulsePos.set([tmp.x, tmp.y, tmp.z], (i * TRAIL + k) * 3);
         }
       });
       pulses.geo.attributes.position.needsUpdate = true;
-      checks = 128 + Math.floor(t * 2.4);
+      checksRun = 128 + Math.floor(t * 2.4);
     },
-    hud: () => `3 agents · ${checks} checks run`,
+    hud: () => `3 agents · ${checksRun} checks run`,
   };
 };
 
