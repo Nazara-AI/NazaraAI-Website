@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState, type FormEvent } from "react";
-import { ThreeScene, type SceneVariant } from "./components/three-scene";
+import { ThreeScene } from "./components/three-scene";
 
 /* ------------------------------------------------------------------ */
 /* Content                                                             */
@@ -48,24 +48,21 @@ const SEVERITY_STYLE: Record<Severity, string> = {
   Low: "bg-slate-100 text-slate-700 ring-slate-200",
 };
 
-const PILLARS: { tag: string; scene: SceneVariant; title: string; lead: string; body: string }[] = [
+const PILLARS: { tag: string; title: string; lead: string; body: string }[] = [
   {
     tag: "01",
-    scene: "sheet",
     title: "Engineering-aware checks",
     lead: "Reads drawings, calculations and model output the way a checker does.",
     body: "Members, sections, connections, weld and inspection callouts are pulled into structured data, so checks run against what the drawing actually says.",
   },
   {
     tag: "02",
-    scene: "joint",
     title: "Offshore structural context",
     lead: "Built for jackets, topsides, foundations and their secondary steel.",
     body: "Checks are framed around the codes, client specifications and project design basis your work is reviewed against.",
   },
   {
     tag: "03",
-    scene: "network",
     title: "Agentic review workflows",
     lead: "AI agents carry out the repetitive review passes end to end.",
     body: "They cross-reference the set, trace every finding back to a sheet or model reference, and hand the engineer a list to accept or reject.",
@@ -231,6 +228,104 @@ function Arrow() {
     <svg viewBox="0 0 16 16" aria-hidden="true" className="h-3.5 w-3.5 shrink-0">
       <path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  );
+}
+
+type FlowIcon = "file" | "bot" | "check" | "flag";
+
+const FLOW: { icon: FlowIcon; label: string; meta: string; tone?: "agent" | "flag" }[] = [
+  { icon: "file", label: "Drawings", meta: "42 sheets" },
+  { icon: "bot", label: "Agents", meta: "3 running", tone: "agent" },
+  { icon: "check", label: "Checks", meta: "1,318 run" },
+  { icon: "flag", label: "Findings", meta: "2 flagged", tone: "flag" },
+];
+
+function Icon({ name, className = "h-5 w-5" }: { name: FlowIcon; className?: string }) {
+  const paths: Record<FlowIcon, React.ReactNode> = {
+    file: (
+      <>
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+      </>
+    ),
+    bot: (
+      <>
+        <path d="M12 8V4H8" />
+        <rect width="16" height="12" x="4" y="8" rx="2" />
+        <path d="M2 14h2M20 14h2M15 13v2M9 13v2" />
+      </>
+    ),
+    check: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="m8.5 12 2.5 2.5 4.5-5" />
+      </>
+    ),
+    flag: (
+      <>
+        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+        <path d="M4 22v-7" />
+      </>
+    ),
+  };
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {paths[name]}
+    </svg>
+  );
+}
+
+function AgentFlow() {
+  return (
+    <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-5 sm:px-5">
+      <ol className="flex items-start" aria-label="Review flow: drawings, agents, checks, findings">
+        {FLOW.map((n, i) => (
+          <li key={n.label} className="flex flex-1 items-start last:flex-none">
+            <div className="flex w-16 shrink-0 flex-col items-center text-center sm:w-20">
+              <span
+                className={`relative flex h-11 w-11 items-center justify-center rounded-xl ring-1 ring-inset sm:h-12 sm:w-12 ${
+                  n.tone === "flag"
+                    ? "bg-amber-400/10 text-amber-400 ring-amber-400/30"
+                    : n.tone === "agent"
+                      ? "bg-brand-bright/15 text-brand-bright ring-brand-bright/40"
+                      : "bg-white/5 text-white/80 ring-white/15"
+                }`}
+              >
+                {n.tone === "agent" && (
+                  <span className="flow-ping absolute inset-0 rounded-xl ring-1 ring-brand-bright/50" />
+                )}
+                <Icon name={n.icon} />
+              </span>
+              <span className="mt-2 text-[12px] font-semibold text-white">{n.label}</span>
+              <span
+                className={`font-mono text-[10px] ${n.tone === "flag" ? "text-amber-400/80" : "text-white/45"}`}
+              >
+                {n.meta}
+              </span>
+            </div>
+            {i < FLOW.length - 1 && (
+              <div className="relative mt-[22px] h-px flex-1 bg-white/15 sm:mt-6" aria-hidden="true">
+                <span
+                  className={`flow-dot absolute top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full ${
+                    i === FLOW.length - 2 ? "bg-amber-400" : "bg-brand-bright"
+                  }`}
+                  style={{ animationDelay: `${i * 0.6}s` }}
+                />
+              </div>
+            )}
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 
@@ -475,7 +570,7 @@ export default function Home() {
                     <p className="mt-3 font-medium text-ink">{PILLARS[0].lead}</p>
                     <p className="mt-2 text-sm text-ink-soft">{PILLARS[0].body}</p>
                     <div className="relative mt-6 h-36 overflow-hidden rounded-xl bg-paper ring-1 ring-line ring-inset md:mt-auto">
-                      <ThreeScene variant={PILLARS[0].scene} className="absolute inset-0" />
+                      <ThreeScene variant="sheet" className="absolute inset-0" />
                     </div>
                   </div>
                   <div className="flex flex-col border-t border-line bg-paper/60 p-5 sm:p-6 md:border-t-0 md:border-l">
@@ -538,7 +633,7 @@ export default function Home() {
                 <h3 className="mt-4 text-xl font-bold tracking-tight">{PILLARS[1].title}</h3>
                 <p className="mt-3 font-medium text-ink">{PILLARS[1].lead}</p>
                 <div className="relative -mx-2 mt-5 h-36 overflow-hidden rounded-xl bg-paper ring-1 ring-line ring-inset">
-                  <ThreeScene variant={PILLARS[1].scene} className="absolute inset-0" />
+                  <ThreeScene variant="joint" className="absolute inset-0" />
                 </div>
                 <p className="mt-5 text-sm text-ink-soft">{PILLARS[1].body}</p>
                 <div className="mt-5 flex flex-wrap gap-1.5">
@@ -556,9 +651,7 @@ export default function Home() {
                 <h3 className="mt-4 text-xl font-bold tracking-tight">{PILLARS[2].title}</h3>
                 <p className="mt-3 font-medium text-white/90">{PILLARS[2].lead}</p>
                 <p className="mt-2 text-sm text-white/60">{PILLARS[2].body}</p>
-                <div className="relative -mx-2 mt-5 h-40 overflow-hidden rounded-xl bg-white/[0.03] ring-1 ring-white/10 ring-inset">
-                  <ThreeScene variant={PILLARS[2].scene} tone="dark" className="absolute inset-0" />
-                </div>
+                <AgentFlow />
                 <div className="mt-4 rounded-xl border border-white/10 bg-deep-2/80 p-4 font-mono text-[11.5px]">
                   <div className="mb-3 flex items-center justify-between text-[10px] uppercase tracking-wider text-white/40">
                     <span>run · jacket-brace-connections</span>
@@ -663,7 +756,13 @@ export default function Home() {
                   Every member checked, level by level
                 </div>
               </div>
-              <ThreeScene variant="jacket" tone="dark" className="relative h-80 sm:h-[28rem] lg:h-[32rem]" />
+              <div className="relative">
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 bg-[radial-gradient(closest-side,rgb(34_197_94/0.12),transparent)]"
+                />
+                <ThreeScene variant="jacket" tone="dark" className="relative h-80 sm:h-[28rem] lg:h-[32rem]" />
+              </div>
             </div>
             <ol className="mt-10 grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 md:grid-cols-3">
               {STEPS.map((s) => (

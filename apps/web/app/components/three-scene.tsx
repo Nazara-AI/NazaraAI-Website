@@ -12,7 +12,7 @@ import type * as ThreeNS from "three";
  * - Where WebGL is unavailable (old browsers, jsdom tests) nothing renders.
  */
 
-export type SceneVariant = "waves" | "jacket" | "sheet" | "joint" | "network";
+export type SceneVariant = "waves" | "jacket" | "sheet" | "joint";
 
 type Three = typeof ThreeNS;
 type V3 = [number, number, number];
@@ -190,7 +190,7 @@ const jacket: Builder = (THREE, scene, camera, kit) => {
     S.poly(c, true);
     const pb = S.add(c[0], c[2]);
     if (li < 2) S.add(c[1], c[3]);
-    if (li === 2) flags.push({ seg: pb, color: AMBER, label: "plan brace" });
+    if (li === 2) flags.push({ seg: pb, color: 0xfbbf24, label: "plan brace" });
     const g = 0.55;
     S.poly(
       [
@@ -207,8 +207,8 @@ const jacket: Builder = (THREE, scene, camera, kit) => {
         S.add(c[k], d[k]);
         const a = S.add(c[k], d[(k + 1) % 4]);
         const b = S.add(c[(k + 1) % 4], d[k]);
-        if (li === 1 && k === 0) flags.push({ seg: a, color: RED, label: "X-brace" });
-        if (li === 0 && k === 2) flags.push({ seg: b, color: AMBER, label: "X-brace" });
+        if (li === 1 && k === 0) flags.push({ seg: a, color: 0xf87171, label: "X-brace" });
+        if (li === 0 && k === 2) flags.push({ seg: b, color: 0xfbbf24, label: "X-brace" });
       }
     }
   });
@@ -328,7 +328,7 @@ const jacket: Builder = (THREE, scene, camera, kit) => {
   // Joints at every frame corner
   const nodePos: number[] = [];
   levels.forEach((y) => ring(y).forEach((v) => nodePos.push(...v)));
-  group.add(points(THREE, kit, new Float32Array(nodePos), { color: BRIGHT, size: 0.22, opacity: 0.9 }).obj);
+  group.add(points(THREE, kit, new Float32Array(nodePos), { color: 0x86efac, size: 0.14, opacity: 0.55 }).obj);
 
   // Flare flame
   const flame = points(THREE, kit, new Float32Array([fb[0], fb[1] + 0.75, fb[2]]), { color: 0xfb923c, size: 0.6 });
@@ -336,23 +336,24 @@ const jacket: Builder = (THREE, scene, camera, kit) => {
 
   // Seabed grid
   const bed = new Segs();
-  for (let i = -7; i <= 7; i++) {
-    bed.add([i, -0.02, -7], [i, -0.02, 7]);
-    bed.add([-7, -0.02, i], [7, -0.02, i]);
+  for (const r of [3.4, 4.8, 6.2, 7.6]) bed.poly(circle([0, -0.02, 0], r, 96, "xz"), true);
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    bed.add([Math.cos(a) * 3.4, -0.02, Math.sin(a) * 3.4], [Math.cos(a) * 7.6, -0.02, Math.sin(a) * 7.6]);
   }
-  group.add(bed.lines(THREE, { color: 0x1f3328, opacity: 0.9 }).obj);
+  group.add(bed.lines(THREE, { color: 0x2a4436, opacity: 0.55 }).obj);
 
   // Sea surface
   const sw = 34;
   const seaPos = new Float32Array(sw * sw * 3);
-  const sea = points(THREE, kit, seaPos, { color: 0xbfe8d0, size: 0.09, opacity: 0.4 });
+  const sea = points(THREE, kit, seaPos, { color: 0xbfe8d0, size: 0.06, opacity: 0.22 });
   group.add(sea.obj);
 
   // Scan plane + outline
   const planeMat = new THREE.MeshBasicMaterial({
     color: BRIGHT,
     transparent: true,
-    opacity: 0.08,
+    opacity: 0.06,
     side: THREE.DoubleSide,
     depthWrite: false,
   });
@@ -368,7 +369,7 @@ const jacket: Builder = (THREE, scene, camera, kit) => {
     ],
     true
   );
-  const outlineL = outline.lines(THREE, { color: BRIGHT, opacity: 0.5 });
+  const outlineL = outline.lines(THREE, { color: 0x86efac, opacity: 0.4 });
   group.add(plane, outlineL.obj);
 
   // Finding markers
@@ -376,19 +377,21 @@ const jacket: Builder = (THREE, scene, camera, kit) => {
     const m = struct.geo.attributes.position.array as Float32Array;
     const i = f.seg * 6;
     const mid = new Float32Array([(m[i] + m[i + 3]) / 2, (m[i + 1] + m[i + 4]) / 2, (m[i + 2] + m[i + 5]) / 2]);
-    const pt = points(THREE, kit, mid, { color: f.color, size: 0.7, opacity: 0 });
+    const pt = points(THREE, kit, mid, { color: f.color, size: 0.5, opacity: 0 });
     group.add(pt.obj);
     return { ...f, y: mid[1], mat: pt.mat };
   });
 
-  group.position.y = -5.4;
+  group.position.y = -5.6;
   scene.add(group);
-  camera.position.set(0, 2.6, 21);
-  camera.lookAt(0, -0.2, 0);
+  scene.fog = new THREE.Fog(0x07120c, 19, 31);
+  camera.position.set(0, 2.2, 23.5);
+  camera.lookAt(0, -0.4, 0);
 
-  const dim = new THREE.Color(0x34443b);
-  const done = new THREE.Color(BRIGHT);
-  const hot = new THREE.Color(0xeafff1);
+  const dim = new THREE.Color(0x2b3d33);
+  const done = new THREE.Color(0x4ade80);
+  const settled = new THREE.Color(0x3a8f5d);
+  const hot = new THREE.Color(0xf0fff4);
   const tmp = new THREE.Color();
   const flagColor = new Map(flags.map((f) => [f.seg, new THREE.Color(f.color)]));
   const H = MAIN + 3.4;
@@ -397,7 +400,7 @@ const jacket: Builder = (THREE, scene, camera, kit) => {
 
   return {
     update(t) {
-      group.rotation.y = t * 0.12;
+      group.rotation.y = 0.5 + t * 0.07;
       const scan = ((t * 1.15) % (H + 4)) - 1.6;
       plane.position.y = scan;
       outlineL.obj.position.y = scan;
@@ -410,7 +413,8 @@ const jacket: Builder = (THREE, scene, camera, kit) => {
         const d = scan - m[1];
         if (d > 0) checked++;
         const fc = flagColor.get(i);
-        if (d > 0.35) tmp.copy(fc ?? done).lerp(fc ? fc : dim, fc ? 0 : Math.min(0.55, (d - 0.35) / 14));
+        if (fc && d > 0.35) tmp.copy(fc);
+        else if (d > 0.35) tmp.copy(done).lerp(settled, Math.min(1, (d - 0.35) / 2.5));
         else if (d > -0.35) tmp.copy(hot);
         else tmp.copy(dim);
         paint(struct.col!, i, tmp);
@@ -421,7 +425,7 @@ const jacket: Builder = (THREE, scene, camera, kit) => {
       markers.forEach((mk, i) => {
         const on = scan > mk.y;
         if (on) found++;
-        mk.mat.opacity = on ? 0.45 + Math.sin(t * 4 + i) * 0.35 : 0;
+        mk.mat.opacity = on ? 0.6 + Math.sin(t * 2.5 + i) * 0.25 : 0;
       });
 
       // Sea surface
@@ -440,7 +444,7 @@ const jacket: Builder = (THREE, scene, camera, kit) => {
       flame.mat.size = 0.5 + Math.sin(t * 9) * 0.1 + Math.sin(t * 23) * 0.06;
 
       const el = Math.max(-62, Math.min(48, (scan - MSL) * 10));
-      hudText = `SCAN EL ${el >= 0 ? "+" : "−"}${Math.abs(el).toFixed(1)} m  ·  ${Math.min(checked, total)}/${total} members  ·  ${found} findings`;
+      hudText = `EL ${el >= 0 ? "+" : "−"}${Math.abs(el).toFixed(1)} m  ·  ${Math.min(checked, total)}/${total} members  ·  ${found} flagged`;
     },
     hud: () => hudText,
   };
@@ -565,9 +569,18 @@ const sheet: Builder = (THREE, scene, camera) => {
   );
   group.add(glow, bar);
 
-  group.rotation.set(-0.42, 0.32, 0.06);
+  group.rotation.set(-0.16, 0.18, 0);
+  group.position.set(0.18, 0.3, 0); // optically centred, title block clear of the caption
   scene.add(group);
   camera.position.set(0, 0, 6.3);
+
+  // Fit the whole sheet in frame whatever the box's aspect ratio.
+  const HALF_W = W + 0.35;
+  const HALF_H = H + 0.75;
+  const fit = () => {
+    const vt = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    camera.position.z = Math.max(HALF_H / vt, HALF_W / (vt * camera.aspect));
+  };
 
   const idle = new THREE.Color(PAPER_LINE);
   const done = new THREE.Color(BRAND);
@@ -575,6 +588,7 @@ const sheet: Builder = (THREE, scene, camera) => {
 
   return {
     update(t) {
+      fit();
       const cycle = 6.5;
       const p = (t % cycle) / cycle;
       const x = -W + p * 1.3 * W * 2;
@@ -589,7 +603,7 @@ const sheet: Builder = (THREE, scene, camera) => {
         if (since > 0) found++;
         iss.mat.opacity = since > 0 ? Math.min(1, since * 2.5) : 0;
       });
-      group.rotation.y = 0.32 + Math.sin(t * 0.5) * 0.07;
+      group.rotation.y = 0.18 + Math.sin(t * 0.5) * 0.05;
     },
     hud: () => `DWG S-1203 rev C · ${found} finding${found === 1 ? "" : "s"}`,
   };
@@ -782,149 +796,7 @@ const joint: Builder = (THREE, scene, camera) => {
   };
 };
 
-/* ---------------------------------------------------------------- */
-/* Pillar 3: agents, documents, checks and outputs                   */
-/* ---------------------------------------------------------------- */
-const network: Builder = (THREE, scene, camera, kit) => {
-  // Left-to-right review flow: documents -> agents -> checks -> findings.
-  // Laid out wide and shallow so it fills a short, wide strip.
-  const DOC = 0x8fa39a;
-  const col = (x: number, n: number, span: number, z = 0): ThreeNS.Vector3[] =>
-    Array.from({ length: n }, (_, i) => new THREE.Vector3(x, n === 1 ? 0 : span / 2 - (i * span) / (n - 1), z));
-
-  const docs = col(-5.4, 4, 2.6, 0.2);
-  const agents = col(-1.9, 3, 2.0, -0.1);
-  const checks = col(1.7, 4, 2.6, 0.15);
-  const outs = col(5.1, 2, 1.3, 0);
-  const flagged = 1; // index into outs that receives amber "finding" pulses
-
-  const group = new THREE.Group();
-  const edgeMat = (c: number, o = 1) => new THREE.LineBasicMaterial({ color: c, transparent: true, opacity: o });
-  const outline = (geo: ThreeNS.BufferGeometry, c: number, at: ThreeNS.Vector3) => {
-    const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat(c));
-    geo.dispose();
-    e.position.copy(at);
-    group.add(e);
-    return e;
-  };
-
-  const docGlyphs = docs.map((p) => outline(new THREE.BoxGeometry(0.34, 0.44, 0.03), DOC, p));
-  const checkGlyphs = checks.map((p) => outline(new THREE.OctahedronGeometry(0.15), BRIGHT, p));
-  const outGlyphs = outs.map((p, i) => outline(new THREE.TetrahedronGeometry(0.2), i === flagged ? AMBER : BRIGHT, p));
-  const agentHubs = agents.map((p) => outline(new THREE.IcosahedronGeometry(0.26, 1), BRIGHT, p));
-  const rings = agents.map((p, i) => {
-    const s = new Segs();
-    s.poly(circle([0, 0, 0], 0.46, 48, "xz"), true);
-    const l = s.lines(THREE, { color: BRIGHT, opacity: 0.45 });
-    l.obj.position.copy(p);
-    l.obj.rotation.x = 0.5 + i * 0.35;
-    group.add(l.obj);
-    return l.obj;
-  });
-
-  // Edges as horizontal S-curves
-  type Edge = { a: ThreeNS.Vector3; b: ThreeNS.Vector3; color: number; speed: number; offset: number };
-  const edges: Edge[] = [];
-  const link = (a: ThreeNS.Vector3, b: ThreeNS.Vector3, color = BRIGHT) =>
-    edges.push({ a, b, color, speed: 0.32 + (edges.length % 4) * 0.05, offset: (edges.length * 0.37) % 1 });
-
-  docs.forEach((d, i) => {
-    const j = Math.round((i / (docs.length - 1)) * (agents.length - 1));
-    link(d, agents[j]);
-    if (i % 2 === 1) link(d, agents[Math.min(agents.length - 1, j + 1)]);
-  });
-  agents.forEach((a, j) => {
-    checks.forEach((c, k) => {
-      const centre = (j / (agents.length - 1)) * (checks.length - 1);
-      if (Math.abs(k - centre) <= 1) link(a, c);
-    });
-  });
-  checks.forEach((c, k) => {
-    const o = k < 2 ? 0 : 1;
-    link(c, outs[o], o === flagged && k === 3 ? AMBER : BRIGHT);
-  });
-
-  const curve = (e: Edge, t: number, out: ThreeNS.Vector3) => {
-    const dx = (e.b.x - e.a.x) * 0.5;
-    const u = 1 - t;
-    const x = u * u * u * e.a.x + 3 * u * u * t * (e.a.x + dx) + 3 * u * t * t * (e.b.x - dx) + t * t * t * e.b.x;
-    const ease = t * t * (3 - 2 * t);
-    return out.set(x, e.a.y + (e.b.y - e.a.y) * ease, e.a.z + (e.b.z - e.a.z) * t);
-  };
-
-  const STEPS = 18;
-  const lineSegs = new Segs();
-  const pa = new THREE.Vector3();
-  const pb = new THREE.Vector3();
-  edges.forEach((e) => {
-    for (let s = 0; s < STEPS; s++) {
-      curve(e, s / STEPS, pa);
-      curve(e, (s + 1) / STEPS, pb);
-      lineSegs.add(pa.toArray() as V3, pb.toArray() as V3);
-    }
-  });
-  group.add(lineSegs.lines(THREE, { color: PAPER_LINE, opacity: 0.28 }).obj);
-
-  // Pulses with short trails
-  const TRAIL = 5;
-  const pulsePos = new Float32Array(edges.length * TRAIL * 3);
-  const pulseCol = new Float32Array(edges.length * TRAIL * 3);
-  const bg = new THREE.Color(0x07120c);
-  edges.forEach((e, i) => {
-    const c = new THREE.Color(e.color);
-    for (let k = 0; k < TRAIL; k++) {
-      const cc = c.clone().lerp(bg, k / TRAIL);
-      pulseCol.set([cc.r, cc.g, cc.b], (i * TRAIL + k) * 3);
-    }
-  });
-  const pulses = points(THREE, kit, pulsePos, { size: 0.2, colors: pulseCol });
-  group.add(pulses.obj);
-
-  scene.add(group);
-  camera.position.set(0, 0.2, 9.2);
-  camera.lookAt(0, 0, 0);
-
-  // Keep the whole flow in frame on narrow strips by backing the camera off.
-  const HALF_W = 6.6;
-  const HALF_H = 2.5;
-  const fit = () => {
-    const vt = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-    const dist = Math.max(HALF_H / vt, HALF_W / (vt * camera.aspect));
-    camera.position.z = dist;
-  };
-
-  const tmp = new THREE.Vector3();
-  let checksRun = 0;
-
-  return {
-    update(t) {
-      fit();
-      group.rotation.y = Math.sin(t * 0.3) * 0.16;
-      group.rotation.x = Math.sin(t * 0.22) * 0.06;
-      agentHubs.forEach((h, i) => (h.rotation.y = t * (0.7 + i * 0.15)));
-      rings.forEach((r, i) => (r.rotation.y = (i % 2 ? -1 : 1) * t * 0.8));
-      docGlyphs.forEach((g, i) => (g.rotation.y = Math.sin(t * 0.6 + i) * 0.35));
-      checkGlyphs.forEach((g, i) => (g.rotation.y = t * (0.6 + (i % 3) * 0.2)));
-      outGlyphs.forEach((g, i) => {
-        g.rotation.y = t * 0.5;
-        const s = 1 + (i === flagged ? 0.12 * Math.max(0, Math.sin(t * 3)) : 0);
-        g.scale.setScalar(s);
-      });
-      edges.forEach((e, i) => {
-        const p = (t * e.speed + e.offset) % 1;
-        for (let k = 0; k < TRAIL; k++) {
-          curve(e, Math.max(0, p - k * 0.03), tmp);
-          pulsePos.set([tmp.x, tmp.y, tmp.z], (i * TRAIL + k) * 3);
-        }
-      });
-      pulses.geo.attributes.position.needsUpdate = true;
-      checksRun = 128 + Math.floor(t * 2.4);
-    },
-    hud: () => `3 agents · ${checksRun} checks run`,
-  };
-};
-
-const BUILDERS: Record<SceneVariant, Builder> = { waves, jacket, sheet, joint, network };
+const BUILDERS: Record<SceneVariant, Builder> = { waves, jacket, sheet, joint };
 
 /* ---------------------------------------------------------------- */
 /* React wrapper                                                     */
@@ -1038,7 +910,7 @@ export function ThreeScene({
       <div ref={host} className="absolute inset-0" />
       <div
         ref={hudRef}
-        className={`pointer-events-none absolute right-3 bottom-2.5 font-mono text-[10px] tracking-wide empty:hidden ${
+        className={`pointer-events-none absolute right-3 bottom-2.5 max-w-[calc(100%-1.5rem)] truncate font-mono text-[10px] tracking-wide empty:hidden ${
           tone === "dark" ? "text-white/45" : "text-muted"
         }`}
       />
