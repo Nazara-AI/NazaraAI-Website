@@ -68,7 +68,49 @@
   animation: rise 0.5s ease-out forwards;
 }
 
+/* Agent flow connectors in the Platform section */
+@keyframes flow-move {
+  0% {
+    left: 0;
+    opacity: 0;
+  }
+  15%,
+  85% {
+    opacity: 1;
+  }
+  100% {
+    left: calc(100% - 6px);
+    opacity: 0;
+  }
+}
+
+@keyframes flow-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+.flow-dot {
+  animation: flow-move 1.8s ease-in-out infinite;
+}
+
+.flow-ping {
+  animation: flow-ping 1.8s ease-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .flow-dot,
+  .flow-ping {
+    animation: none;
+  }
+  .flow-dot {
+    left: calc(50% - 3px);
+  }
   html {
     scroll-behavior: auto !important;
   }

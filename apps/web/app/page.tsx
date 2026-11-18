@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState, type FormEvent } from "react";
-import { ThreeScene, type SceneVariant } from "./components/three-scene";
+import { ThreeScene } from "./components/three-scene";
 
 /* ------------------------------------------------------------------ */
 /* Content                                                             */
@@ -48,28 +48,49 @@ const SEVERITY_STYLE: Record<Severity, string> = {
   Low: "bg-slate-100 text-slate-700 ring-slate-200",
 };
 
-const PILLARS: { tag: string; scene: SceneVariant; title: string; lead: string; body: string }[] = [
+const PILLARS: { tag: string; title: string; lead: string; body: string }[] = [
   {
     tag: "01",
-    scene: "sheet",
     title: "Engineering-aware checks",
     lead: "Reads drawings, calculations and model output the way a checker does.",
     body: "Members, sections, connections, weld and inspection callouts are pulled into structured data, so checks run against what the drawing actually says.",
   },
   {
     tag: "02",
-    scene: "joint",
     title: "Offshore structural context",
     lead: "Built for jackets, topsides, foundations and their secondary steel.",
     body: "Checks are framed around the codes, client specifications and project design basis your work is reviewed against.",
   },
   {
     tag: "03",
-    scene: "network",
     title: "Agentic review workflows",
     lead: "AI agents carry out the repetitive review passes end to end.",
     body: "They cross-reference the set, trace every finding back to a sheet or model reference, and hand the engineer a list to accept or reject.",
   },
+];
+
+const EXTRACTED: { item: string; drawing: string; model: string; ok: boolean }[] = [
+  { item: "Brace B-214", drawing: "Ø610×19", model: "Ø610×22", ok: false },
+  { item: "Leg L-02 can", drawing: "Ø1524×50", model: "Ø1524×50", ok: true },
+  { item: "Weld W-08", drawing: "CJP · —", model: "CJP · Cat. A", ok: false },
+  { item: "Node N-31", drawing: "S355 NL", model: "S355 NL", ok: true },
+];
+
+const BASIS = ["API RP 2A", "ISO 19902", "NORSOK N-004", "DNV-RP-C203", "AWS D1.1", "Client spec", "Design basis"];
+
+const STRUCTURES = ["Jackets", "Topsides", "Foundations", "Secondary steel"];
+
+const AGENT_TRACE: { agent: string; task: string; status: "done" | "running" | "queued" }[] = [
+  { agent: "extract", task: "42 sheets → 1,318 callouts", status: "done" },
+  { agent: "cross-check", task: "drawings ↔ in-place model", status: "done" },
+  { agent: "compliance", task: "weld & NDT vs. client spec", status: "running" },
+  { agent: "draft", task: "findings with references", status: "queued" },
+];
+
+const PLATFORM_POINTS = [
+  "Structured extraction, not summaries",
+  "Every finding cites a sheet or model reference",
+  "Engineers accept, reject or comment on each item",
 ];
 
 const STEPS = [
@@ -207,6 +228,104 @@ function Arrow() {
     <svg viewBox="0 0 16 16" aria-hidden="true" className="h-3.5 w-3.5 shrink-0">
       <path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  );
+}
+
+type FlowIcon = "file" | "bot" | "check" | "flag";
+
+const FLOW: { icon: FlowIcon; label: string; meta: string; tone?: "agent" | "flag" }[] = [
+  { icon: "file", label: "Drawings", meta: "42 sheets" },
+  { icon: "bot", label: "Agents", meta: "3 running", tone: "agent" },
+  { icon: "check", label: "Checks", meta: "1,318 run" },
+  { icon: "flag", label: "Findings", meta: "2 flagged", tone: "flag" },
+];
+
+function Icon({ name, className = "h-5 w-5" }: { name: FlowIcon; className?: string }) {
+  const paths: Record<FlowIcon, React.ReactNode> = {
+    file: (
+      <>
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+      </>
+    ),
+    bot: (
+      <>
+        <path d="M12 8V4H8" />
+        <rect width="16" height="12" x="4" y="8" rx="2" />
+        <path d="M2 14h2M20 14h2M15 13v2M9 13v2" />
+      </>
+    ),
+    check: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="m8.5 12 2.5 2.5 4.5-5" />
+      </>
+    ),
+    flag: (
+      <>
+        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+        <path d="M4 22v-7" />
+      </>
+    ),
+  };
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {paths[name]}
+    </svg>
+  );
+}
+
+function AgentFlow() {
+  return (
+    <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-5 sm:px-5">
+      <ol className="flex items-start" aria-label="Review flow: drawings, agents, checks, findings">
+        {FLOW.map((n, i) => (
+          <li key={n.label} className="flex flex-1 items-start last:flex-none">
+            <div className="flex w-16 shrink-0 flex-col items-center text-center sm:w-20">
+              <span
+                className={`relative flex h-11 w-11 items-center justify-center rounded-xl ring-1 ring-inset sm:h-12 sm:w-12 ${
+                  n.tone === "flag"
+                    ? "bg-amber-400/10 text-amber-400 ring-amber-400/30"
+                    : n.tone === "agent"
+                      ? "bg-brand-bright/15 text-brand-bright ring-brand-bright/40"
+                      : "bg-white/5 text-white/80 ring-white/15"
+                }`}
+              >
+                {n.tone === "agent" && (
+                  <span className="flow-ping absolute inset-0 rounded-xl ring-1 ring-brand-bright/50" />
+                )}
+                <Icon name={n.icon} />
+              </span>
+              <span className="mt-2 text-[12px] font-semibold text-white">{n.label}</span>
+              <span
+                className={`font-mono text-[10px] ${n.tone === "flag" ? "text-amber-400/80" : "text-white/45"}`}
+              >
+                {n.meta}
+              </span>
+            </div>
+            {i < FLOW.length - 1 && (
+              <div className="relative mt-[22px] h-px flex-1 bg-white/15 sm:mt-6" aria-hidden="true">
+                <span
+                  className={`flow-dot absolute top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full ${
+                    i === FLOW.length - 2 ? "bg-amber-400" : "bg-brand-bright"
+                  }`}
+                  style={{ animationDelay: `${i * 0.6}s` }}
+                />
+              </div>
+            )}
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 
@@ -412,33 +531,210 @@ export default function Home() {
         </section>
 
         {/* Pillars */}
-        <section id="platform" className="scroll-mt-20 px-4 py-20 sm:px-6 sm:py-28">
+        <section id="platform" className="blueprint relative scroll-mt-20 border-b border-line px-4 py-20 sm:px-6 sm:py-28">
           <div className="mx-auto max-w-6xl">
-            <div className="max-w-2xl">
-              <Eyebrow>Platform</Eyebrow>
-              <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
-                Built for the way structural work is checked.
-              </h2>
-              <p className="mt-4 text-ink-soft">
-                General-purpose AI summarises documents. Nazara AI is built to verify them — with the
-                structure, references and evidence a checking engineer needs.
-              </p>
+            <div className="grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-end lg:gap-16">
+              <div>
+                <Eyebrow>Platform</Eyebrow>
+                <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl lg:text-[2.75rem] lg:leading-[1.1]">
+                  Built for the way structural work is <span className="text-brand">checked.</span>
+                </h2>
+              </div>
+              <div>
+                <p className="text-ink-soft">
+                  General-purpose AI summarises documents. Nazara AI is built to verify them — with the
+                  structure, references and evidence a checking engineer needs.
+                </p>
+                <ul className="mt-5 space-y-2">
+                  {PLATFORM_POINTS.map((pt) => (
+                    <li key={pt} className="flex items-start gap-2.5 text-sm text-ink">
+                      <span className="mt-[3px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand-tint text-brand">
+                        <svg viewBox="0 0 12 12" aria-hidden="true" className="h-2.5 w-2.5">
+                          <path d="M2.5 6.2 5 8.5l4.5-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </span>
+                      {pt}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
-            <div className="mt-12 grid gap-5 md:grid-cols-3">
-              {PILLARS.map((p) => (
-                <article
-                  key={p.title}
-                  className="group flex flex-col rounded-2xl border border-line bg-white p-6 transition hover:border-brand/40 hover:shadow-[0_12px_40px_-20px_rgba(22,101,51,0.35)] sm:p-7"
-                >
-                  <div className="relative -mx-2 -mt-2 h-40 overflow-hidden rounded-xl bg-paper ring-1 ring-line ring-inset">
-                    <ThreeScene variant={p.scene} className="absolute inset-0" />
-                    <span className="absolute top-3 left-3 font-mono text-xs text-brand">{p.tag}</span>
+
+            <div className="mt-14 grid gap-5 lg:grid-cols-6">
+              {/* 01 — Engineering-aware checks (wide) */}
+              <article className="group overflow-hidden rounded-2xl border border-line bg-white transition hover:border-brand/40 hover:shadow-[0_16px_48px_-24px_rgba(22,101,51,0.4)] lg:col-span-4">
+                <div className="grid h-full md:grid-cols-[1fr_1.15fr]">
+                  <div className="flex flex-col p-6 sm:p-8">
+                    <span className="font-mono text-xs text-brand">{PILLARS[0].tag}</span>
+                    <h3 className="mt-4 text-2xl font-bold tracking-tight">{PILLARS[0].title}</h3>
+                    <p className="mt-3 font-medium text-ink">{PILLARS[0].lead}</p>
+                    <p className="mt-2 text-sm text-ink-soft">{PILLARS[0].body}</p>
+                    <div className="relative mt-6 h-36 overflow-hidden rounded-xl bg-paper ring-1 ring-line ring-inset md:mt-auto">
+                      <ThreeScene variant="sheet" className="absolute inset-0" />
+                    </div>
                   </div>
-                  <h3 className="mt-6 text-xl font-bold tracking-tight">{p.title}</h3>
-                  <p className="mt-3 font-medium text-ink">{p.lead}</p>
-                  <p className="mt-2 text-sm text-ink-soft">{p.body}</p>
-                </article>
-              ))}
+                  <div className="flex flex-col border-t border-line bg-paper/60 p-5 sm:p-6 md:border-t-0 md:border-l">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold">Extracted · drawing vs. model</span>
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-muted">Illustrative</span>
+                    </div>
+                    <div className="mt-4 overflow-hidden rounded-lg border border-line bg-white">
+                      <table className="w-full text-left text-[12px]">
+                        <thead className="border-b border-line bg-paper font-mono text-[10px] uppercase tracking-wider text-muted">
+                          <tr>
+                            <th className="px-3 py-2 font-medium">Item</th>
+                            <th className="px-3 py-2 font-medium">Drawing</th>
+                            <th className="px-3 py-2 font-medium">Model</th>
+                            <th className="px-2 py-2" aria-label="Status" />
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-line font-mono">
+                          {EXTRACTED.map((r) => (
+                            <tr key={r.item} className={r.ok ? "" : "bg-red-50/50"}>
+                              <td className="px-3 py-2.5 font-sans font-medium text-ink">{r.item}</td>
+                              <td className={`px-3 py-2.5 ${r.ok ? "text-ink-soft" : "text-red-700"}`}>{r.drawing}</td>
+                              <td className="px-3 py-2.5 text-ink-soft">{r.model}</td>
+                              <td className="px-2 py-2.5 text-center">
+                                <span
+                                  className={`inline-block h-2 w-2 rounded-full ${r.ok ? "bg-brand-bright" : "bg-red-500"}`}
+                                  aria-label={r.ok ? "Match" : "Mismatch"}
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+                      {[
+                        ["42", "sheets read"],
+                        ["1,318", "callouts"],
+                        ["2", "mismatches"],
+                      ].map(([v, l]) => (
+                        <div key={l} className="rounded-lg border border-line bg-white px-2 py-2.5">
+                          <div className="font-mono text-base font-semibold text-ink">{v}</div>
+                          <div className="text-[10.5px] text-muted">{l}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 flex items-center gap-2 rounded-lg border border-dashed border-brand/30 bg-brand-tint/60 px-3 py-2.5 text-[12px] text-brand md:mt-auto">
+                      <Arrow />
+                      <span>
+                        2 findings drafted with sheet references — sent to the checker for review
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              {/* 02 — Offshore context (narrow) */}
+              <article className="group flex flex-col overflow-hidden rounded-2xl border border-line bg-white p-6 transition hover:border-brand/40 hover:shadow-[0_16px_48px_-24px_rgba(22,101,51,0.4)] sm:p-8 lg:col-span-2">
+                <span className="font-mono text-xs text-brand">{PILLARS[1].tag}</span>
+                <h3 className="mt-4 text-xl font-bold tracking-tight">{PILLARS[1].title}</h3>
+                <p className="mt-3 font-medium text-ink">{PILLARS[1].lead}</p>
+                <div className="relative -mx-2 mt-5 h-36 overflow-hidden rounded-xl bg-paper ring-1 ring-line ring-inset">
+                  <ThreeScene variant="joint" className="absolute inset-0" />
+                </div>
+                <p className="mt-5 text-sm text-ink-soft">{PILLARS[1].body}</p>
+                <div className="mt-5 flex flex-wrap gap-1.5">
+                  {STRUCTURES.map((s) => (
+                    <span key={s} className="rounded-md bg-brand-tint px-2 py-1 text-[11px] font-medium text-brand">
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </article>
+
+              {/* 03 — Agentic workflows (dark) */}
+              <article className="blueprint-dark flex flex-col overflow-hidden rounded-2xl border border-deep bg-deep p-6 text-white sm:p-8 lg:col-span-3">
+                <span className="font-mono text-xs text-brand-bright">{PILLARS[2].tag}</span>
+                <h3 className="mt-4 text-xl font-bold tracking-tight">{PILLARS[2].title}</h3>
+                <p className="mt-3 font-medium text-white/90">{PILLARS[2].lead}</p>
+                <p className="mt-2 text-sm text-white/60">{PILLARS[2].body}</p>
+                <AgentFlow />
+                <div className="mt-4 rounded-xl border border-white/10 bg-deep-2/80 p-4 font-mono text-[11.5px]">
+                  <div className="mb-3 flex items-center justify-between text-[10px] uppercase tracking-wider text-white/40">
+                    <span>run · jacket-brace-connections</span>
+                    <span>illustrative</span>
+                  </div>
+                  <ul className="space-y-2">
+                    {AGENT_TRACE.map((a) => (
+                      <li key={a.agent} className="flex items-center gap-3">
+                        <span
+                          className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                            a.status === "done"
+                              ? "bg-brand-bright"
+                              : a.status === "running"
+                                ? "animate-pulse bg-amber-400"
+                                : "bg-white/25"
+                          }`}
+                        />
+                        <span className="w-24 shrink-0 text-brand-bright">{a.agent}</span>
+                        <span className="min-w-0 flex-1 truncate text-white/70">{a.task}</span>
+                        <span className="shrink-0 text-white/35">{a.status}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </article>
+
+              {/* 04 — Traceable record */}
+              <article className="group flex flex-col overflow-hidden rounded-2xl border border-line bg-white p-6 transition hover:border-brand/40 hover:shadow-[0_16px_48px_-24px_rgba(22,101,51,0.4)] sm:p-8 lg:col-span-3">
+                <span className="font-mono text-xs text-brand">04</span>
+                <h3 className="mt-4 text-xl font-bold tracking-tight">Traceable by default</h3>
+                <p className="mt-3 font-medium text-ink">Every finding carries its evidence and its decision.</p>
+                <p className="mt-2 text-sm text-ink-soft">
+                  Requirement, evidence and engineer decision stay linked, so the review becomes a QA/QC
+                  record you can hand to internal review or a certifying body.
+                </p>
+                <div className="mt-6 rounded-xl border border-line bg-paper/60 p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px] font-medium ring-1 ring-inset bg-red-50 text-red-700 ring-red-200">
+                      High
+                    </span>
+                    <p className="text-[13px] leading-snug font-medium">
+                      Brace B-214: drawing shows Ø610×19, model uses Ø610×22
+                    </p>
+                  </div>
+                  <ol className="mt-4 flex flex-col gap-2 font-mono text-[11px] sm:flex-row sm:items-center sm:gap-0">
+                    {[
+                      ["Requirement", "Design basis §4.2"],
+                      ["Evidence", "S-1203 rev C · m2141"],
+                      ["Decision", "Pending engineer"],
+                    ].map(([k, v], i) => (
+                      <li key={k} className="flex items-center sm:flex-1">
+                        <div className="min-w-0 flex-1 rounded-md border border-line bg-white px-2.5 py-1.5">
+                          <div className="text-[9.5px] uppercase tracking-wider text-muted">{k}</div>
+                          <div className="truncate text-ink">{v}</div>
+                        </div>
+                        {i < 2 && <span className="hidden px-1.5 text-muted sm:inline">→</span>}
+                      </li>
+                    ))}
+                  </ol>
+                  <div className="mt-4 flex gap-2">
+                    <span className="rounded-md bg-brand px-3 py-1.5 text-xs font-semibold text-white">Accept</span>
+                    <span className="rounded-md border border-line bg-white px-3 py-1.5 text-xs font-semibold text-ink">Reject</span>
+                    <span className="rounded-md border border-line bg-white px-3 py-1.5 text-xs font-semibold text-ink-soft">Comment</span>
+                  </div>
+                </div>
+                <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line pt-4 font-mono text-[11px] text-muted lg:mt-auto">
+                  <span className="uppercase tracking-wider">Export record</span>
+                  {["PDF report", "CSV register", "Comment sheet"].map((x) => (
+                    <span key={x} className="rounded border border-line bg-white px-2 py-0.5 text-ink-soft">
+                      {x}
+                    </span>
+                  ))}
+                </div>
+              </article>
+            </div>
+
+            <div className="mt-8 flex flex-col gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
+              <span className="font-mono text-[11px] uppercase tracking-wider text-muted">Framed around</span>
+              <div className="flex flex-wrap gap-x-5 gap-y-2 font-mono text-xs text-ink-soft">
+                {BASIS.map((b) => (
+                  <span key={b}>{b}</span>
+                ))}
+              </div>
             </div>
           </div>
         </section>
@@ -460,7 +756,13 @@ export default function Home() {
                   Every member checked, level by level
                 </div>
               </div>
-              <ThreeScene variant="jacket" tone="dark" className="relative h-80 sm:h-[28rem] lg:h-[32rem]" />
+              <div className="relative">
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 bg-[radial-gradient(closest-side,rgb(34_197_94/0.12),transparent)]"
+                />
+                <ThreeScene variant="jacket" tone="dark" className="relative h-80 sm:h-[28rem] lg:h-[32rem]" />
+              </div>
             </div>
             <ol className="mt-10 grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 md:grid-cols-3">
               {STEPS.map((s) => (

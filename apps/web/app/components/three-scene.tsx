@@ -12,7 +12,7 @@ import type * as ThreeNS from "three";
  * - Where WebGL is unavailable (old browsers, jsdom tests) nothing renders.
  */
 
-export type SceneVariant = "waves" | "jacket" | "sheet" | "joint" | "network";
+export type SceneVariant = "waves" | "jacket" | "sheet" | "joint";
 
 type Three = typeof ThreeNS;
 type V3 = [number, number, number];
@@ -190,7 +190,7 @@ const jacket: Builder = (THREE, scene, camera, kit) => {
     S.poly(c, true);
     const pb = S.add(c[0], c[2]);
     if (li < 2) S.add(c[1], c[3]);
-    if (li === 2) flags.push({ seg: pb, color: AMBER, label: "plan brace" });
+    if (li === 2) flags.push({ seg: pb, color: 0xfbbf24, label: "plan brace" });
     const g = 0.55;
     S.poly(
       [
@@ -207,8 +207,8 @@ const jacket: Builder = (THREE, scene, camera, kit) => {
         S.add(c[k], d[k]);
         const a = S.add(c[k], d[(k + 1) % 4]);
         const b = S.add(c[(k + 1) % 4], d[k]);
-        if (li === 1 && k === 0) flags.push({ seg: a, color: RED, label: "X-brace" });
-        if (li === 0 && k === 2) flags.push({ seg: b, color: AMBER, label: "X-brace" });
+        if (li === 1 && k === 0) flags.push({ seg: a, color: 0xf87171, label: "X-brace" });
+        if (li === 0 && k === 2) flags.push({ seg: b, color: 0xfbbf24, label: "X-brace" });
       }
     }
   });
@@ -328,7 +328,7 @@ const jacket: Builder = (THREE, scene, camera, kit) => {
   // Joints at every frame corner
   const nodePos: number[] = [];
   levels.forEach((y) => ring(y).forEach((v) => nodePos.push(...v)));
-  group.add(points(THREE, kit, new Float32Array(nodePos), { color: BRIGHT, size: 0.22, opacity: 0.9 }).obj);
+  group.add(points(THREE, kit, new Float32Array(nodePos), { color: 0x86efac, size: 0.14, opacity: 0.55 }).obj);
 
   // Flare flame
   const flame = points(THREE, kit, new Float32Array([fb[0], fb[1] + 0.75, fb[2]]), { color: 0xfb923c, size: 0.6 });
@@ -336,23 +336,24 @@ const jacket: Builder = (THREE, scene, camera, kit) => {
 
   // Seabed grid
   const bed = new Segs();
-  for (let i = -7; i <= 7; i++) {
-    bed.add([i, -0.02, -7], [i, -0.02, 7]);
-    bed.add([-7, -0.02, i], [7, -0.02, i]);
+  for (const r of [3.4, 4.8, 6.2, 7.6]) bed.poly(circle([0, -0.02, 0], r, 96, "xz"), true);
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    bed.add([Math.cos(a) * 3.4, -0.02, Math.sin(a) * 3.4], [Math.cos(a) * 7.6, -0.02, Math.sin(a) * 7.6]);
   }
-  group.add(bed.lines(THREE, { color: 0x1f3328, opacity: 0.9 }).obj);
+  group.add(bed.lines(THREE, { color: 0x2a4436, opacity: 0.55 }).obj);
 
   // Sea surface
   const sw = 34;
   const seaPos = new Float32Array(sw * sw * 3);
-  const sea = points(THREE, kit, seaPos, { color: 0xbfe8d0, size: 0.09, opacity: 0.4 });
+  const sea = points(THREE, kit, seaPos, { color: 0xbfe8d0, size: 0.06, opacity: 0.22 });
   group.add(sea.obj);
 
   // Scan plane + outline
   const planeMat = new THREE.MeshBasicMaterial({
     color: BRIGHT,
     transparent: true,
-    opacity: 0.08,
+    opacity: 0.06,
     side: THREE.DoubleSide,
     depthWrite: false,
   });
@@ -368,7 +369,7 @@ const jacket: Builder = (THREE, scene, camera, kit) => {
     ],
     true
   );
-  const outlineL = outline.lines(THREE, { color: BRIGHT, opacity: 0.5 });
+  const outlineL = outline.lines(THREE, { color: 0x86efac, opacity: 0.4 });
   group.add(plane, outlineL.obj);
 
   // Finding markers
@@ -376,19 +377,21 @@ const jacket: Builder = (THREE, scene, camera, kit) => {
     const m = struct.geo.attributes.position.array as Float32Array;
     const i = f.seg * 6;
     const mid = new Float32Array([(m[i] + m[i + 3]) / 2, (m[i + 1] + m[i + 4]) / 2, (m[i + 2] + m[i + 5]) / 2]);
-    const pt = points(THREE, kit, mid, { color: f.color, size: 0.7, opacity: 0 });
+    const pt = points(THREE, kit, mid, { color: f.color, size: 0.5, opacity: 0 });
     group.add(pt.obj);
     return { ...f, y: mid[1], mat: pt.mat };
   });
 
-  group.position.y = -5.4;
+  group.position.y = -5.6;
   scene.add(group);
-  camera.position.set(0, 2.6, 21);
-  camera.lookAt(0, -0.2, 0);
+  scene.fog = new THREE.Fog(0x07120c, 19, 31);
+  camera.position.set(0, 2.2, 23.5);
+  camera.lookAt(0, -0.4, 0);
 
-  const dim = new THREE.Color(0x34443b);
-  const done = new THREE.Color(BRIGHT);
-  const hot = new THREE.Color(0xeafff1);
+  const dim = new THREE.Color(0x2b3d33);
+  const done = new THREE.Color(0x4ade80);
+  const settled = new THREE.Color(0x3a8f5d);
+  const hot = new THREE.Color(0xf0fff4);
   const tmp = new THREE.Color();
   const flagColor = new Map(flags.map((f) => [f.seg, new THREE.Color(f.color)]));
   const H = MAIN + 3.4;
@@ -397,7 +400,7 @@ const jacket: Builder = (THREE, scene, camera, kit) => {
 
   return {
     update(t) {
-      group.rotation.y = t * 0.12;
+      group.rotation.y = 0.5 + t * 0.07;
       const scan = ((t * 1.15) % (H + 4)) - 1.6;
       plane.position.y = scan;
       outlineL.obj.position.y = scan;
@@ -410,7 +413,8 @@ const jacket: Builder = (THREE, scene, camera, kit) => {
         const d = scan - m[1];
         if (d > 0) checked++;
         const fc = flagColor.get(i);
-        if (d > 0.35) tmp.copy(fc ?? done).lerp(fc ? fc : dim, fc ? 0 : Math.min(0.55, (d - 0.35) / 14));
+        if (fc && d > 0.35) tmp.copy(fc);
+        else if (d > 0.35) tmp.copy(done).lerp(settled, Math.min(1, (d - 0.35) / 2.5));
         else if (d > -0.35) tmp.copy(hot);
         else tmp.copy(dim);
         paint(struct.col!, i, tmp);
@@ -421,7 +425,7 @@ const jacket: Builder = (THREE, scene, camera, kit) => {
       markers.forEach((mk, i) => {
         const on = scan > mk.y;
         if (on) found++;
-        mk.mat.opacity = on ? 0.45 + Math.sin(t * 4 + i) * 0.35 : 0;
+        mk.mat.opacity = on ? 0.6 + Math.sin(t * 2.5 + i) * 0.25 : 0;
       });
 
       // Sea surface
@@ -440,7 +444,7 @@ const jacket: Builder = (THREE, scene, camera, kit) => {
       flame.mat.size = 0.5 + Math.sin(t * 9) * 0.1 + Math.sin(t * 23) * 0.06;
 
       const el = Math.max(-62, Math.min(48, (scan - MSL) * 10));
-      hudText = `SCAN EL ${el >= 0 ? "+" : "−"}${Math.abs(el).toFixed(1)} m  ·  ${Math.min(checked, total)}/${total} members  ·  ${found} findings`;
+      hudText = `EL ${el >= 0 ? "+" : "−"}${Math.abs(el).toFixed(1)} m  ·  ${Math.min(checked, total)}/${total} members  ·  ${found} flagged`;
     },
     hud: () => hudText,
   };
@@ -565,9 +569,18 @@ const sheet: Builder = (THREE, scene, camera) => {
   );
   group.add(glow, bar);
 
-  group.rotation.set(-0.42, 0.32, 0.06);
+  group.rotation.set(-0.16, 0.18, 0);
+  group.position.set(0.18, 0.3, 0); // optically centred, title block clear of the caption
   scene.add(group);
   camera.position.set(0, 0, 6.3);
+
+  // Fit the whole sheet in frame whatever the box's aspect ratio.
+  const HALF_W = W + 0.35;
+  const HALF_H = H + 0.75;
+  const fit = () => {
+    const vt = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    camera.position.z = Math.max(HALF_H / vt, HALF_W / (vt * camera.aspect));
+  };
 
   const idle = new THREE.Color(PAPER_LINE);
   const done = new THREE.Color(BRAND);
@@ -575,6 +588,7 @@ const sheet: Builder = (THREE, scene, camera) => {
 
   return {
     update(t) {
+      fit();
       const cycle = 6.5;
       const p = (t % cycle) / cycle;
       const x = -W + p * 1.3 * W * 2;
@@ -589,7 +603,7 @@ const sheet: Builder = (THREE, scene, camera) => {
         if (since > 0) found++;
         iss.mat.opacity = since > 0 ? Math.min(1, since * 2.5) : 0;
       });
-      group.rotation.y = 0.32 + Math.sin(t * 0.5) * 0.07;
+      group.rotation.y = 0.18 + Math.sin(t * 0.5) * 0.05;
     },
     hud: () => `DWG S-1203 rev C · ${found} finding${found === 1 ? "" : "s"}`,
   };
@@ -598,245 +612,191 @@ const sheet: Builder = (THREE, scene, camera) => {
 /* ---------------------------------------------------------------- */
 /* Pillar 2: tubular KT-joint with weld-toe hot spots                */
 /* ---------------------------------------------------------------- */
-const joint: Builder = (THREE, scene, camera, kit) => {
-  const wire = (color: number, opacity: number) =>
-    new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity });
-  const chordMat = wire(BRAND, 0.35);
-  const canMat = wire(BRAND, 0.6);
-  const braceMat = wire(BRAND, 0.5);
+const joint: Builder = (THREE, scene, camera) => {
   const group = new THREE.Group();
+  const R = 0.68; // joint can outer radius
+  const STEEL = new THREE.Color(0xc3ccc7);
 
-  // Chord with a thicker joint can in the middle
-  [
-    { x: -2.0, len: 2.0, r: 0.6, mat: chordMat },
-    { x: 0, len: 2.0, r: 0.68, mat: canMat },
-    { x: 2.0, len: 2.0, r: 0.6, mat: chordMat },
-  ].forEach(({ x, len, r, mat }) => {
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 18, 4, true), mat);
-    m.rotation.z = Math.PI / 2;
-    m.position.x = x;
-    group.add(m);
-  });
+  // Lighting (scoped to this scene)
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x7d8a83, 1.6));
+  const key = new THREE.DirectionalLight(0xffffff, 2.2);
+  key.position.set(3, 5, 6);
+  scene.add(key);
+  const rim = new THREE.DirectionalLight(0xdff5e6, 1.1);
+  rim.position.set(-5, 2, -4);
+  scene.add(rim);
 
-  // Can end circumferential welds
-  const cw = new Segs();
-  for (const x of [-1, 1]) {
-    const pts = circle([0, 0, 0], 0.68, 40).map(([a, b]) => [x, a, b] as V3);
-    cw.poly(pts, true);
+  const steel = (vertexColors = false) =>
+    new THREE.MeshStandardMaterial({
+      color: vertexColors ? 0xffffff : STEEL,
+      vertexColors,
+      metalness: 0.25,
+      roughness: 0.45,
+    });
+  const bore = new THREE.MeshStandardMaterial({ color: 0x4b5a52, roughness: 0.9, side: THREE.BackSide });
+  const weldMat = new THREE.MeshStandardMaterial({ color: 0xe7ece9, metalness: 0.4, roughness: 0.3 });
+
+  /** Open tube with visible wall thickness: outer skin, dark bore and annular end caps. */
+  const tube = (r: number, len: number, rs: number, hs: number, outer: ThreeNS.Material, caps: [boolean, boolean]) => {
+    const g = new THREE.Group();
+    const skin = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, rs, hs, true), outer);
+    g.add(skin);
+    g.add(new THREE.Mesh(new THREE.CylinderGeometry(r * 0.88, r * 0.88, len, rs, 1, true), bore));
+    caps.forEach((on, i) => {
+      if (!on) return;
+      const ring = new THREE.Mesh(new THREE.RingGeometry(r * 0.88, r, rs), steel());
+      ring.rotation.x = i ? -Math.PI / 2 : Math.PI / 2;
+      ring.position.y = i ? len / 2 : -len / 2;
+      g.add(ring);
+    });
+    return { g, skin };
+  };
+
+  // Chord stubs either side of the thicker joint can
+  for (const sx of [-1, 1]) {
+    const { g } = tube(0.6, 1.5, 64, 1, steel(), [sx < 0, sx > 0]);
+    g.rotation.z = -Math.PI / 2;
+    g.position.x = sx * 2.35;
+    group.add(g);
+    // Can-to-chord shoulder + circumferential weld
+    const shoulder = new THREE.Mesh(new THREE.RingGeometry(0.6, R, 64), steel());
+    shoulder.rotation.y = (sx * Math.PI) / 2;
+    shoulder.position.x = sx * 1.6;
+    group.add(shoulder);
+    const cw = new THREE.Mesh(new THREE.TorusGeometry(0.615, 0.022, 8, 96), weldMat);
+    cw.rotation.y = Math.PI / 2;
+    cw.position.x = sx * 1.6;
+    group.add(cw);
   }
-  group.add(cw.lines(THREE, { color: BRIGHT, opacity: 0.8 }).obj);
+  const can = new THREE.Mesh(new THREE.CylinderGeometry(R, R, 3.2, 128, 96, true), steel(true));
+  can.rotation.z = -Math.PI / 2;
+  group.add(can);
 
-  // Braces: K + vertical (KT joint)
+  // Braces: two inclined + one vertical (KT). xc = footprint centre on the can crown.
   const braces = [
-    { theta: 0.8, x: -0.78, r: 0.3 },
-    { theta: 0, x: 0, r: 0.26 },
-    { theta: -0.8, x: 0.78, r: 0.3 },
+    { theta: 0.8, xc: -0.98, r: 0.3 },
+    { theta: 0, xc: 0, r: 0.26 },
+    { theta: -0.8, xc: 0.98, r: 0.3 },
   ];
-  const hot: { pos: Float32Array; col: Float32Array; geo: ThreeNS.BufferGeometry; n: number }[] = [];
-  braces.forEach(({ theta, x, r }, bi) => {
-    const dir = new THREE.Vector3(-Math.sin(theta), Math.cos(theta), 0);
-    const base = new THREE.Vector3(x, 0.62, 0);
-    const len = 2.5;
-    const b = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 14, 5, true), braceMat);
-    b.rotation.z = theta;
-    b.position.copy(base).addScaledVector(dir, len / 2);
-    group.add(b);
+  const skins: ThreeNS.Mesh[] = [can];
+  const curves: ThreeNS.Vector3[][] = [];
+  const NC = 72;
 
-    // Weld bead at the brace toe
-    const weld = new THREE.Mesh(
-      new THREE.TorusGeometry(r + 0.03, 0.022, 6, 40),
-      new THREE.MeshBasicMaterial({ color: BRIGHT })
-    );
-    const at = base.clone().addScaledVector(dir, 0.14);
-    weld.position.copy(at);
-    weld.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
-    group.add(weld);
-
-    // Hot-spot stress samples around the weld toe
-    const n = 36;
+  braces.forEach(({ theta, xc, r }) => {
+    const d = new THREE.Vector3(-Math.sin(theta), Math.cos(theta), 0);
+    const o = new THREE.Vector3(xc + Math.tan(theta) * R, 0, 0); // brace axis meets chord axis
     const u = new THREE.Vector3(0, 0, 1);
-    const v = new THREE.Vector3().crossVectors(dir, u);
-    const pos = new Float32Array(n * 3);
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2;
-      const p = at
-        .clone()
-        .addScaledVector(u, Math.cos(a) * (r + 0.08))
-        .addScaledVector(v, Math.sin(a) * (r + 0.08));
-      pos.set([p.x, p.y, p.z], i * 3);
+    const w = new THREE.Vector3().crossVectors(d, u);
+
+    // Exact brace/chord intersection (saddle curve): the weld toe line
+    const curve: ThreeNS.Vector3[] = [];
+    for (let i = 0; i < NC; i++) {
+      const a = (i / NC) * Math.PI * 2;
+      const q = o.clone().addScaledVector(u, Math.cos(a) * r).addScaledVector(w, Math.sin(a) * r);
+      const s = (Math.sqrt(R * R - q.z * q.z) - q.y) / d.y;
+      curve.push(q.addScaledVector(d, s));
     }
-    const col = new Float32Array(n * 3);
-    const pt = points(THREE, kit, pos, { size: 0.13, colors: col });
-    group.add(pt.obj);
-    hot.push({ pos, col, geo: pt.geo, n });
-    void bi;
+    curves.push(curve);
+
+    const len = 2.4;
+    const s0 = 0.35;
+    const { g, skin } = tube(r, len, 64, 48, steel(true), [false, true]);
+    g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d);
+    g.position.copy(o).addScaledVector(d, s0 + len / 2);
+    group.add(g);
+    skins.push(skin);
+
+    // Weld bead following the saddle curve, nudged out of both surfaces
+    const bead = curve.map((p) => {
+      const n = new THREE.Vector3(0, p.y, p.z).normalize();
+      const along = p.clone().sub(o);
+      const radial = along.sub(d.clone().multiplyScalar(along.dot(d))).normalize();
+      return p.clone().addScaledVector(n, 0.012).addScaledVector(radial, 0.012);
+    });
+    const path = new THREE.CatmullRomCurve3(bead, true);
+    group.add(new THREE.Mesh(new THREE.TubeGeometry(path, 160, 0.035, 10, true), weldMat));
   });
 
-  group.position.y = -0.85;
-  scene.add(group);
-  camera.position.set(0, 0.8, 8.6);
-  camera.lookAt(0, 0, 0);
+  // Precompute each skin vertex's proximity to the weld toes; the geometry is static.
+  group.updateMatrixWorld(true);
+  const toGroup = group.matrixWorld.clone().invert();
+  type Tap = { v: number; b: number; k: number; wgt: number };
+  const fields = skins.map((mesh, mi) => {
+    const pos = mesh.geometry.attributes.position as ThreeNS.BufferAttribute;
+    const col = new Float32Array(pos.count * 3);
+    mesh.geometry.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    const taps: Tap[] = [];
+    const p = new THREE.Vector3();
+    const m = mesh.matrixWorld.clone().premultiply(toGroup);
+    const fall = mi === 0 ? 0.2 : 0.16;
+    for (let v = 0; v < pos.count; v++) {
+      p.fromBufferAttribute(pos, v).applyMatrix4(m);
+      curves.forEach((c, b) => {
+        if (mi > 0 && mi - 1 !== b) return; // a brace only feels its own toe
+        let best = Infinity;
+        let k = 0;
+        for (let i = 0; i < c.length; i++) {
+          const dd = p.distanceToSquared(c[i]);
+          if (dd < best) {
+            best = dd;
+            k = i;
+          }
+        }
+        const wgt = Math.exp(-best / (fall * fall));
+        if (wgt > 0.015) taps.push({ v, b, k, wgt });
+      });
+    }
+    return { geo: mesh.geometry, col, count: pos.count, taps, s: new Float32Array(pos.count) };
+  });
 
-  const g = new THREE.Color(BRIGHT);
-  const a = new THREE.Color(AMBER);
-  const rd = new THREE.Color(RED);
+  group.position.y = -0.7;
+  scene.add(group);
+  camera.position.set(0.4, 1.4, 8.4);
+  camera.lookAt(0, 0.1, 0);
+
+  const ramp = [new THREE.Color(0x1f9d55), new THREE.Color(0x84cc16), new THREE.Color(AMBER), new THREE.Color(RED)];
   const tmp = new THREE.Color();
+  const BANDS = 9;
   let peak = 0;
 
   return {
     update(t) {
-      group.rotation.y = Math.sin(t * 0.35) * 0.35;
-      group.rotation.x = 0.22 + Math.sin(t * 0.4) * 0.07;
+      group.rotation.y = -0.35 + Math.sin(t * 0.3) * 0.32;
+      group.rotation.x = 0.18 + Math.sin(t * 0.37) * 0.05;
+      // K braces carry alternating axial load; the vertical brace pulses between them
+      const load = braces.map((_, b) => 0.6 + 0.4 * Math.sin(t * 0.8 + b * 2.1));
       peak = 0;
-      hot.forEach((h, bi) => {
-        for (let i = 0; i < h.n; i++) {
-          const ang = (i / h.n) * Math.PI * 2;
-          // Saddle/crown pattern, slowly cycling as if under varying load
-          let s = 0.5 + 0.5 * Math.cos(2 * ang + bi) * (0.6 + 0.4 * Math.sin(t * 0.9 + bi * 1.7));
-          s = Math.max(0, Math.min(1, s));
-          peak = Math.max(peak, s);
-          if (s < 0.5) tmp.copy(g).lerp(a, s * 2);
-          else tmp.copy(a).lerp(rd, (s - 0.5) * 2);
-          h.col.set([tmp.r, tmp.g, tmp.b], i * 3);
+      for (const f of fields) {
+        f.s.fill(0);
+        for (const { v, b, k, wgt } of f.taps) {
+          const a = (k / NC) * Math.PI * 2;
+          // Saddle points (a = ±90°) peak; crown toe/heel lower
+          const pattern = 0.55 + 0.45 * Math.sin(a) * Math.sin(a);
+          f.s[v] = Math.max(f.s[v], wgt * pattern * load[b]);
         }
-        h.geo.attributes.color.needsUpdate = true;
-      });
+        for (let v = 0; v < f.count; v++) {
+          const s = Math.min(1, f.s[v]);
+          peak = Math.max(peak, s);
+          if (s < 0.06) tmp.copy(STEEL);
+          else {
+            const q = Math.ceil(s * BANDS) / BANDS; // contour bands, FEA-style
+            const x = q * (ramp.length - 1);
+            const i = Math.min(ramp.length - 2, Math.floor(x));
+            tmp.copy(ramp[i]).lerp(ramp[i + 1], x - i);
+            tmp.lerp(STEEL, Math.max(0, 0.35 - s) * 1.6);
+          }
+          f.col[v * 3] = tmp.r;
+          f.col[v * 3 + 1] = tmp.g;
+          f.col[v * 3 + 2] = tmp.b;
+        }
+        f.geo.attributes.color.needsUpdate = true;
+      }
     },
     hud: () => `KT joint · weld-toe hot spots · SCF ${(1.8 + peak * 1.6).toFixed(2)}`,
   };
 };
 
-/* ---------------------------------------------------------------- */
-/* Pillar 3: agents, documents, checks and outputs                   */
-/* ---------------------------------------------------------------- */
-const network: Builder = (THREE, scene, camera, kit) => {
-  const N = 12;
-  const pts: ThreeNS.Vector3[] = [];
-  for (let i = 0; i < N; i++) {
-    const y = 1 - (i / (N - 1)) * 2;
-    const r = Math.sqrt(1 - y * y);
-    const a = i * 2.399963;
-    pts.push(new THREE.Vector3(Math.cos(a) * r * 1.75, y * 1.2, Math.sin(a) * r * 1.75));
-  }
-  const kind = (i: number) => (["doc", "check", "out"] as const)[i % 3];
-  const hub = new THREE.Vector3();
-
-  const group = new THREE.Group();
-  const edgeMat = (c: number) => new THREE.LineBasicMaterial({ color: c, transparent: true, opacity: 1 });
-
-  // Node glyphs
-  const glyph = (i: number) => {
-    const k = kind(i);
-    const geo =
-      k === "doc"
-        ? new THREE.BoxGeometry(0.2, 0.26, 0.02)
-        : k === "check"
-          ? new THREE.OctahedronGeometry(0.13)
-          : new THREE.TetrahedronGeometry(0.15);
-    const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat(k === "doc" ? 0x3d4a43 : k === "check" ? BRAND : 0x15803d));
-    geo.dispose();
-    e.position.copy(pts[i]);
-    return e;
-  };
-  const glyphs = pts.map((_, i) => glyph(i));
-  glyphs.forEach((gl) => group.add(gl));
-
-  // Hub with orbit rings
-  const hubGeo = new THREE.IcosahedronGeometry(0.3, 1);
-  const hubMesh = new THREE.LineSegments(new THREE.EdgesGeometry(hubGeo), edgeMat(BRAND));
-  hubGeo.dispose();
-  group.add(hubMesh);
-  const orbits = [0.52, 0.7].map((r, i) => {
-    const s = new Segs();
-    s.poly(circle([0, 0, 0], r, 48, "xz"), true);
-    const l = s.lines(THREE, { color: BRIGHT, opacity: 0.55 });
-    l.obj.rotation.x = i ? 0.9 : -0.5;
-    l.obj.rotation.z = i ? 0.3 : -0.2;
-    group.add(l.obj);
-    return l.obj;
-  });
-
-  // Edges
-  type Edge = { a: ThreeNS.Vector3; b: ThreeNS.Vector3; color: number };
-  const edges: Edge[] = [];
-  const nearest = (from: number, want: ReturnType<typeof kind>) => {
-    let best = -1;
-    let bd = Infinity;
-    pts.forEach((p, j) => {
-      if (j === from || kind(j) !== want) return;
-      const d = p.distanceTo(pts[from]);
-      if (d < bd) {
-        bd = d;
-        best = j;
-      }
-    });
-    return best;
-  };
-  pts.forEach((p, i) => {
-    const k = kind(i);
-    if (k === "doc") {
-      edges.push({ a: p, b: hub, color: BRIGHT });
-      const c = nearest(i, "check");
-      if (c >= 0) edges.push({ a: p, b: pts[c], color: BRIGHT });
-    } else if (k === "check") {
-      edges.push({ a: hub, b: p, color: BRIGHT });
-      const o = nearest(i, "out");
-      if (o >= 0) edges.push({ a: p, b: pts[o], color: AMBER });
-    } else {
-      edges.push({ a: hub, b: p, color: BRIGHT });
-    }
-  });
-  const lineSegs = new Segs();
-  edges.forEach((e) => lineSegs.add(e.a.toArray() as V3, e.b.toArray() as V3));
-  group.add(lineSegs.lines(THREE, { color: PAPER_LINE, opacity: 0.9 }).obj);
-
-  // Pulses with short trails
-  const TRAIL = 4;
-  const pulsePos = new Float32Array(edges.length * TRAIL * 3);
-  const pulseCol = new Float32Array(edges.length * TRAIL * 3);
-  const bg = new THREE.Color(0xf7f8f5);
-  edges.forEach((e, i) => {
-    const c = new THREE.Color(e.color);
-    for (let k = 0; k < TRAIL; k++) {
-      const cc = c.clone().lerp(bg, k / TRAIL);
-      pulseCol.set([cc.r, cc.g, cc.b], (i * TRAIL + k) * 3);
-    }
-  });
-  const pulses = points(THREE, kit, pulsePos, { size: 0.15, colors: pulseCol });
-  group.add(pulses.obj);
-
-  scene.add(group);
-  camera.position.set(0, 0.35, 5.3);
-  camera.lookAt(0, 0, 0);
-  const tmp = new THREE.Vector3();
-  let checks = 0;
-
-  return {
-    update(t) {
-      group.rotation.y = t * 0.28;
-      group.rotation.x = Math.sin(t * 0.25) * 0.18;
-      hubMesh.rotation.y = -t * 0.8;
-      orbits[0].rotation.y = t * 0.9;
-      orbits[1].rotation.y = -t * 0.6;
-      glyphs.forEach((gl, i) => {
-        gl.rotation.y = t * (0.6 + (i % 3) * 0.2);
-      });
-      edges.forEach((e, i) => {
-        const p = (t * 0.42 + i * 0.37) % 1;
-        for (let k = 0; k < TRAIL; k++) {
-          const q = Math.max(0, p - k * 0.035);
-          tmp.copy(e.a).lerp(e.b, q);
-          pulsePos.set([tmp.x, tmp.y, tmp.z], (i * TRAIL + k) * 3);
-        }
-      });
-      pulses.geo.attributes.position.needsUpdate = true;
-      checks = 128 + Math.floor(t * 2.4);
-    },
-    hud: () => `3 agents · ${checks} checks run`,
-  };
-};
-
-const BUILDERS: Record<SceneVariant, Builder> = { waves, jacket, sheet, joint, network };
+const BUILDERS: Record<SceneVariant, Builder> = { waves, jacket, sheet, joint };
 
 /* ---------------------------------------------------------------- */
 /* React wrapper                                                     */
@@ -950,7 +910,7 @@ export function ThreeScene({
       <div ref={host} className="absolute inset-0" />
       <div
         ref={hudRef}
-        className={`pointer-events-none absolute right-3 bottom-2.5 font-mono text-[10px] tracking-wide empty:hidden ${
+        className={`pointer-events-none absolute right-3 bottom-2.5 max-w-[calc(100%-1.5rem)] truncate font-mono text-[10px] tracking-wide empty:hidden ${
           tone === "dark" ? "text-white/45" : "text-muted"
         }`}
       />
