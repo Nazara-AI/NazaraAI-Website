@@ -307,23 +307,25 @@ export default function Home() {
 
       <main className="flex-1">
         {/* Hero */}
-        <section className="blueprint relative overflow-hidden border-b border-line">
+        <section className="relative bg-white overflow-hidden border-b border-line">
           <ThreeScene
             variant="waves"
             className="pointer-events-none absolute inset-x-0 bottom-0 h-64 [mask-image:linear-gradient(to_top,black_30%,transparent)] sm:h-80"
           />
-          <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pt-14 pb-16 sm:px-6 sm:pt-20 sm:pb-24 lg:grid-cols-[1.05fr_1fr] lg:gap-14">
-            <div>
-              <Eyebrow>AI for offshore structural design</Eyebrow>
-              <h1 className="mt-5 text-[2.35rem] leading-[1.08] font-extrabold tracking-tight sm:text-5xl lg:text-[3.6rem]">
-                QA/QC that reads the drawings
-                <span className="text-brand"> before your checker has to.</span>
+          <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-14 px-4 pt-16 pb-16 sm:px-6 sm:pt-24 sm:pb-24">
+            <div className="flex flex-col items-center text-center">
+              <h1 className="max-w-5xl text-[2.6rem] leading-[1.04] font-extrabold tracking-tight sm:text-6xl lg:text-[5rem]">
+                AI for offshore
+                <span className="text-brand"> structural design.</span>
               </h1>
-              <p className="mt-6 max-w-xl text-base text-ink-soft sm:text-lg">
+              <p className="mt-7 max-w-3xl text-xl font-semibold tracking-tight text-ink sm:text-2xl lg:text-[1.75rem] lg:leading-snug">
+                Starting with QA/QC that reads the drawings before your checker has to.
+              </p>
+              <p className="mt-5 max-w-2xl text-base text-ink-soft sm:text-lg">
                 Nazara AI runs engineering-aware review agents across your drawings, calculations and
                 analysis output — and hands your engineers a traceable list of findings to approve.
               </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
                 <a
                   href="#early-access"
                   className="rounded-lg bg-brand px-6 py-3 text-center font-semibold text-white transition hover:bg-brand-dark"
@@ -337,7 +339,7 @@ export default function Home() {
                   See how it works
                 </a>
               </div>
-              <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-xs text-muted">
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 font-mono text-xs text-muted">
                 <span>01 Upload</span>
                 <span className="text-line">—</span>
                 <span>02 Review</span>
@@ -345,7 +347,9 @@ export default function Home() {
                 <span>03 Approve</span>
               </div>
             </div>
-            <ReviewPanel />
+            <div className="w-full max-w-2xl">
+              <ReviewPanel />
+            </div>
           </div>
         </section>
 
@@ -358,7 +362,7 @@ export default function Home() {
         </section>
 
         {/* Pillars */}
-        <section id="platform" className="blueprint relative scroll-mt-20 border-b border-line px-4 py-20 sm:px-6 sm:py-28">
+        <section id="platform" className="relative bg-white scroll-mt-20 border-b border-line px-4 py-20 sm:px-6 sm:py-28">
           <div className="mx-auto max-w-6xl">
             <div className="grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-end lg:gap-16">
               <div>
@@ -473,7 +477,7 @@ export default function Home() {
               </article>
 
               {/* 03 — Agentic workflows (dark) */}
-              <article className="blueprint-dark flex flex-col overflow-hidden rounded-2xl border border-deep bg-deep p-6 text-white sm:p-8 lg:col-span-3">
+              <article className="flex flex-col overflow-hidden rounded-2xl border border-deep bg-deep p-6 text-white sm:p-8 lg:col-span-3">
                 <span className="font-mono text-xs text-brand-bright">{PILLARS[2].tag}</span>
                 <h3 className="mt-4 text-xl font-bold tracking-tight">{PILLARS[2].title}</h3>
                 <p className="mt-3 font-medium text-white/90">{PILLARS[2].lead}</p>
@@ -567,7 +571,7 @@ export default function Home() {
         </section>
 
         {/* How it works (dark) */}
-        <section id="how-it-works" className="blueprint-dark scroll-mt-20 bg-deep px-4 py-20 text-white sm:px-6 sm:py-28">
+        <section id="how-it-works" className="scroll-mt-20 bg-deep px-4 py-20 text-white sm:px-6 sm:py-28">
           <div className="mx-auto max-w-6xl">
             <div className="grid items-center gap-6 lg:grid-cols-2">
               <div className="max-w-xl">
