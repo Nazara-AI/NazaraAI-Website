@@ -14,7 +14,7 @@ export function EarlyAccess({
   heading?: string;
 }) {
   return (
-    <section id="early-access" className="blueprint-dark scroll-mt-20 bg-deep px-4 py-20 text-white sm:px-6 sm:py-28">
+    <section id="early-access" className="scroll-mt-20 bg-deep px-4 py-20 text-white sm:px-6 sm:py-28">
       <div className="mx-auto grid max-w-6xl items-start gap-12 lg:grid-cols-2">
         <div>
           <Eyebrow dark>Early access program</Eyebrow>

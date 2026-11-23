@@ -62,7 +62,7 @@ export default async function UseCasePage({ params }: PageProps<"/use-cases/[slu
       <SiteHeader />
 
       <main className="flex-1">
-        <section className="blueprint border-b border-line px-4 pt-10 pb-16 sm:px-6 sm:pt-14 sm:pb-24">
+        <section className="border-b bg-white border-line px-4 pt-10 pb-16 sm:px-6 sm:pt-14 sm:pb-24">
           <div className="mx-auto max-w-6xl">
             <nav aria-label="Breadcrumb" className="font-mono text-xs text-muted">
               <ol className="flex flex-wrap items-center gap-2">
