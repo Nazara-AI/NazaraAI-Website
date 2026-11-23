@@ -22,11 +22,11 @@ export function SiteHeader({ home = false }: { home?: boolean }) {
         </a>
       </div>
 
-      <header className="sticky top-0 z-20 border-b border-line/80 bg-paper/85 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-line/80 bg-white/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <Link href="/" className="flex items-center gap-2" aria-label="Nazara AI home">
-            <Image src="/logo.svg" alt="" width={160} height={160} className="h-9 w-9" priority />
-            <span className="text-[17px] font-bold tracking-tight">Nazara AI</span>
+          <Link href="/" className="flex shrink-0 items-center gap-2.5" aria-label="Nazara AI home">
+            <Image src="/logo-mark.png" alt="" width={160} height={160} className="h-11 w-11 sm:h-12 sm:w-12" priority />
+            <span className="text-xl font-extrabold tracking-tight sm:text-2xl">Nazara AI</span>
           </Link>
           <nav className="hidden items-center gap-7 text-sm text-ink-soft md:flex" aria-label="Main">
             {nav.map((n) =>
