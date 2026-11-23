@@ -9,10 +9,10 @@ export function SiteFooter() {
       <div className="mx-auto grid max-w-6xl gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div>
           <div className="flex items-center gap-2">
-            <span className="rounded-md bg-white p-1">
-              <Image src="/logo.svg" alt="" width={72} height={72} className="h-7 w-7" />
+            <span className="rounded-lg bg-white p-1.5">
+              <Image src="/logo-mark.png" alt="" width={96} height={96} className="h-9 w-9" />
             </span>
-            <span className="font-bold text-white">Nazara AI</span>
+            <span className="text-xl font-extrabold tracking-tight text-white">Nazara AI</span>
           </div>
           <p className="mt-4 max-w-sm text-sm">
             Engineering-aware AI for offshore structural QA/QC. Engineers lead, verify and approve

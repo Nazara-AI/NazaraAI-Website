@@ -8,8 +8,8 @@ export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function Image() {
-  const logo = await readFile(join(process.cwd(), "public/logo.svg"), "utf8");
-  const logoSrc = `data:image/svg+xml;base64,${Buffer.from(logo).toString("base64")}`;
+  const logo = await readFile(join(process.cwd(), "public/logo-mark.png"));
+  const logoSrc = `data:image/png;base64,${Buffer.from(logo).toString("base64")}`;
   const grid = "rgba(34,197,94,0.08)";
 
   return new ImageResponse(

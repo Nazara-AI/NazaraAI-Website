@@ -83,7 +83,7 @@ export function structuredData() {
         "@id": org,
         name: SITE.name,
         url: SITE_URL,
-        logo: `${SITE_URL}/logo.svg`,
+        logo: `${SITE_URL}/logo.png`,
         email: SITE.email,
         sameAs: [SITE.linkedin],
         description: SITE.definition,
