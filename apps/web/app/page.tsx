@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BookDemoButton } from "./components/book-demo-button";
 import { ThreeScene } from "./components/three-scene";
 import { EarlyAccess } from "./components/early-access";
 import { SiteFooter } from "./components/site-footer";
@@ -326,12 +327,7 @@ export default function Home() {
                 analysis output — and hands your engineers a traceable list of findings to approve.
               </p>
               <div className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-                <a
-                  href="#early-access"
-                  className="rounded-lg bg-brand px-6 py-3 text-center font-semibold text-white transition hover:bg-brand-dark"
-                >
-                  Request early access
-                </a>
+                <BookDemoButton className="rounded-lg bg-brand px-6 py-3 text-center font-semibold text-white transition hover:bg-brand-dark" />
                 <a
                   href="#how-it-works"
                   className="rounded-lg border border-line bg-white px-6 py-3 text-center font-semibold text-ink transition hover:border-ink/30"
