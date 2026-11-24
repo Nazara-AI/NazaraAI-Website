@@ -71,8 +71,8 @@ export async function POST(req: Request) {
 
     // Send email notification via Resend (it reports failures in `error`, not by throwing)
     const { error: emailError } = await resend.emails.send({
-      from: "Nazara AI Waitlist <onboarding@resend.dev>",
-      to: ["chineduobi423@gmail.com"],
+      from: process.env.RESEND_FROM || "Nazara AI Waitlist <onboarding@resend.dev>",
+      to: (process.env.WAITLIST_NOTIFY_TO || "albertkent@nazara.ai").split(",").map((s) => s.trim()).filter(Boolean),
       subject: `New Waitlist Signup: ${fullName}`,
       html: `
         <h2>New Early Access Signup</h2>
@@ -82,8 +82,14 @@ export async function POST(req: Request) {
       `,
     });
     if (emailError) throw new Error(`Resend: ${emailError.message}`);
+  } catch (error) {
+    console.error("Waitlist error:", error);
+    return bad("Failed to process signup", 500);
+  }
 
-    // Log to Google Sheet
+  // Log to Google Sheet. The email above already recorded the signup, so a failure here
+  // is logged for follow-up but doesn't fail the visitor's submission.
+  try {
     const sheetRes = await fetch(SHEETS_WEBHOOK, {
       method: "POST",
       headers: { "Content-Type": "text/plain" },
@@ -94,10 +100,9 @@ export async function POST(req: Request) {
       }),
     });
     if (!sheetRes.ok) throw new Error(`Sheets webhook: HTTP ${sheetRes.status}`);
-
-    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Waitlist error:", error);
-    return bad("Failed to process signup", 500);
+    console.error("Waitlist sheet logging failed:", error);
   }
+
+  return NextResponse.json({ success: true });
 }
