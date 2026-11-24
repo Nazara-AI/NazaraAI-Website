@@ -61,6 +61,7 @@ describe("Home page waitlist form", () => {
       expect(screen.getByRole("button")).not.toBeDisabled();
     });
     expect(screen.queryByText(/you're on the list/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(/something went wrong/i);
   });
 
   it("requires full name and email before submission", () => {

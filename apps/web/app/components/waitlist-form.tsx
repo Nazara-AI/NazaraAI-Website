@@ -11,19 +11,29 @@ export function WaitlistForm() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fullName, company, email }),
       });
-      if (res.ok) setSubmitted(true);
+      if (res.ok) {
+        setSubmitted(true);
+      } else if (res.status === 400) {
+        const data = await res.json().catch(() => null);
+        setError(data?.error === "Invalid email address" ? "Please enter a valid email address." : "Please check your details and try again.");
+      } else {
+        setError("Something went wrong. Please try again in a moment.");
+      }
     } catch (err) {
       console.error(err);
+      setError("Couldn't reach the server. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -84,6 +94,11 @@ export function WaitlistForm() {
           className={inputClass}
         />
       </div>
+      {error && (
+        <p role="alert" className="rounded-lg bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
+          {error}
+        </p>
+      )}
       <button
         type="submit"
         disabled={loading}

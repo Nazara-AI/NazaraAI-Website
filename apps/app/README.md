@@ -1,3 +1,0 @@
-# app
-
-Main product app.

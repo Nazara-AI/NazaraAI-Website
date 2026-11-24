@@ -81,10 +81,17 @@ describe("POST /api/waitlist", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("returns a 500 when the Sheets webhook fails", async () => {
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(new Response(null, { status: 502 }));
+  it("still succeeds when the email is sent but the Sheets webhook fails", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(new Response(null, { status: 401 }));
     const res = await POST(makeRequest({ fullName: "Ada Lovelace", email: "ada@example.com" }));
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(200);
+    expect(sendMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("still succeeds when the Sheets webhook throws", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("network down"));
+    const res = await POST(makeRequest({ fullName: "Ada Lovelace", email: "ada@example.com" }));
+    expect(res.status).toBe(200);
   });
 
   it("returns a 500 when the Resend call fails", async () => {
