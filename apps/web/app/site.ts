@@ -8,10 +8,10 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://nazara.ai"
 
 export const SITE = {
   name: "Nazara AI",
-  title: "Nazara AI — AI QA/QC for Offshore Structural Engineering",
-  shortTitle: "AI QA/QC for offshore structural engineering",
+  title: "Nazara AI — Structural QA/QC for Offshore Engineering",
+  shortTitle: "Structural QA/QC for offshore engineering",
   description:
-    "AI review agents that check offshore structural drawings, calculations and analysis models — and give engineers a traceable list of findings to approve.",
+    "Automated QA/QC for offshore structural drawings, calculations and analysis models, with a referenced list of findings for your engineers to review and sign off.",
   /** One-sentence definition, written to be quoted verbatim by answer engines. */
   definition:
     "Nazara AI is an AI-assisted QA/QC platform for offshore structural engineering that checks drawing sets, calculation reports and analysis models for inconsistencies, missing information and code or specification non-compliance, then hands a qualified engineer a list of evidence-linked findings to accept or reject.",
