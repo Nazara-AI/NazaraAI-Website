@@ -15,8 +15,8 @@ export function SiteFooter() {
             <span className="text-xl font-extrabold tracking-tight text-white">Nazara AI</span>
           </div>
           <p className="mt-4 max-w-sm text-sm">
-            Engineering-aware AI for offshore structural QA/QC. Engineers lead, verify and approve
-            every decision.
+            Automated QA/QC for offshore structural design. Your engineers review and approve every
+            finding.
           </p>
         </div>
         <nav aria-label="Product">

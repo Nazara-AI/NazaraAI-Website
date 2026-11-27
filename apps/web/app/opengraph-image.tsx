@@ -39,10 +39,10 @@ export default async function Image() {
 
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ fontSize: 22, letterSpacing: 4, color: "#22c55e", textTransform: "uppercase" }}>
-            AI for offshore structural design
+            Offshore structural design
           </div>
           <div style={{ marginTop: 22, fontSize: 68, fontWeight: 800, lineHeight: 1.08, maxWidth: 980 }}>
-            QA/QC that reads the drawings before your checker has to.
+            Automated QA/QC for drawings, calculations and analysis models.
           </div>
         </div>
 

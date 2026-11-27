@@ -111,3 +111,55 @@ details > summary {
 details > summary::-webkit-details-marker {
   display: none;
 }
+
+/* ------------------------------------------------------------------ */
+/* "Supported by" logo marquee (components/supporters-strip.tsx)       */
+/* ------------------------------------------------------------------ */
+
+.marquee {
+  overflow: hidden;
+  /* soft fade at both edges */
+  mask-image: linear-gradient(to right, transparent, #000 18%, #000 82%, transparent);
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 48s linear infinite;
+}
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+.marquee-group {
+  display: flex;
+  align-items: center;
+  /* wider than the strip (max 64rem), so a company is never on screen twice */
+  min-width: 76rem;
+  justify-content: space-around;
+  gap: 4rem;
+  padding-right: 4rem; /* keeps the gap where the two halves meet */
+}
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee {
+    mask-image: none;
+  }
+  .marquee-track {
+    animation: none;
+    width: auto;
+    justify-content: center;
+  }
+  .marquee-group {
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 1.5rem;
+    padding-inline: 1rem;
+  }
+  .marquee-group[aria-hidden="true"] {
+    display: none;
+  }
+}

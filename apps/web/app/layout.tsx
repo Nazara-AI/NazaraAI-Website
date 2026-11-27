@@ -2,7 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Inter } from "next/font/google";
 import { HashLinks } from "./components/hash-links";
 import { SITE, SITE_URL, jsonLd, structuredData } from "./site";
+import { INTRO_BOOT_SCRIPT } from "./components/intro-boot";
 import "./globals.css";
+import "./loader.css";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -60,8 +62,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${plexMono.variable}`}>
+    <html lang="en" className={`${inter.variable} ${plexMono.variable}`} suppressHydrationWarning>
       <body>
+        {/* Decides before first paint whether the homepage loading screen shows (sets html[data-intro]). */}
+        <script dangerouslySetInnerHTML={{ __html: INTRO_BOOT_SCRIPT }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(structuredData()) }} />
         <HashLinks />
         {children}

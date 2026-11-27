@@ -2,6 +2,8 @@ import Link from "next/link";
 import { BookDemoButton } from "./components/book-demo-button";
 import { ThreeScene } from "./components/three-scene";
 import { EarlyAccess } from "./components/early-access";
+import { SiteLoader } from "./components/site-loader";
+import { SupportersStrip } from "./components/supporters-strip";
 import { SiteFooter } from "./components/site-footer";
 import { SiteHeader } from "./components/site-header";
 import { Arrow, Eyebrow } from "./components/ui";
@@ -279,6 +281,22 @@ function ReviewPanel() {
   );
 }
 
+/** One headline line; each word rises out of its own mask, staggered across lines. */
+function HeroLine({ words, start, className = "" }: { words: string[]; start: number; className?: string }) {
+  return (
+    <span className={`hero-line ${className}`}>
+      {words.map((w, i) => (
+        <span key={w}>
+          <span className="hero-word" style={{ animationDelay: `${(start + i) * 0.08}s` }}>
+            {w}
+          </span>
+          {i < words.length - 1 ? " " : ""}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Page                                                                */
 /* ------------------------------------------------------------------ */
@@ -304,6 +322,7 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(PAGE_LD) }} />
+      <SiteLoader />
       <SiteHeader home />
 
       <main className="flex-1">
@@ -316,17 +335,17 @@ export default function Home() {
           <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-14 px-4 pt-16 pb-16 sm:px-6 sm:pt-24 sm:pb-24">
             <div className="flex flex-col items-center text-center">
               <h1 className="max-w-5xl text-[2.6rem] leading-[1.04] font-extrabold tracking-tight sm:text-6xl lg:text-[5rem]">
-                AI for offshore
-                <span className="text-brand"> structural design.</span>
+                <HeroLine words={["Design", "checks", "for"]} start={0} />
+                <HeroLine words={["offshore", "structures."]} start={3} className="text-brand" />
               </h1>
-              <p className="mt-7 max-w-3xl text-xl font-semibold tracking-tight text-ink sm:text-2xl lg:text-[1.75rem] lg:leading-snug">
-                Starting with QA/QC that reads the drawings before your checker has to.
+              <p className="hero-in mt-7 max-w-3xl text-balance text-xl font-semibold tracking-tight text-ink sm:text-2xl lg:text-[1.75rem] lg:leading-snug" style={{ animationDelay: "0.4s" }}>
+                Automated QA/QC for drawings, calculations and analysis models.
               </p>
-              <p className="mt-5 max-w-2xl text-base text-ink-soft sm:text-lg">
-                Nazara AI runs engineering-aware review agents across your drawings, calculations and
-                analysis output — and hands your engineers a traceable list of findings to approve.
+              <p className="hero-in mt-5 max-w-2xl text-balance text-base text-ink-soft sm:text-lg" style={{ animationDelay: "0.55s" }}>
+                Nazara compares your deliverables against the analysis and design basis, and gives your
+                engineers a referenced list of findings to review and sign off.
               </p>
-              <div className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+              <div className="hero-in mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row" style={{ animationDelay: "0.7s" }}>
                 <BookDemoButton className="rounded-lg bg-brand px-6 py-3 text-center font-semibold text-white transition hover:bg-brand-dark" />
                 <a
                   href="#how-it-works"
@@ -335,7 +354,7 @@ export default function Home() {
                   See how it works
                 </a>
               </div>
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 font-mono text-xs text-muted">
+              <div className="hero-in mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 font-mono text-xs text-muted" style={{ animationDelay: "0.8s" }}>
                 <span>01 Upload</span>
                 <span className="text-line">—</span>
                 <span>02 Review</span>
@@ -343,11 +362,14 @@ export default function Home() {
                 <span>03 Approve</span>
               </div>
             </div>
-            <div className="w-full max-w-2xl">
+            <div className="hero-in w-full max-w-2xl" style={{ animationDelay: "0.95s" }}>
               <ReviewPanel />
             </div>
           </div>
         </section>
+
+        {/* Supported by: scrolling logo strip */}
+        <SupportersStrip />
 
         {/* Tagline band */}
         <section className="border-b border-line bg-white">
